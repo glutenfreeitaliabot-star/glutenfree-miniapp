@@ -11,32 +11,32 @@
 
 body{
 font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;
-background:#f6f7fb;
+background:#f4f6fb;
 margin:0;
 }
 
 .header{
 background:white;
 padding:20px;
-box-shadow:0 2px 10px rgba(0,0,0,.05);
+box-shadow:0 2px 12px rgba(0,0,0,.06);
 position:sticky;
 top:0;
 z-index:10;
 }
 
 .title{
-font-size:22px;
+font-size:24px;
 font-weight:700;
 }
 
 .search{
-margin-top:10px;
+margin-top:12px;
 }
 
 .search input{
 width:100%;
-padding:12px;
-border-radius:10px;
+padding:14px;
+border-radius:12px;
 border:1px solid #ddd;
 font-size:16px;
 }
@@ -45,10 +45,43 @@ font-size:16px;
 padding:16px;
 }
 
+.grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:12px;
+margin-top:10px;
+}
+
+.btn{
+background:white;
+border-radius:14px;
+padding:20px;
+text-align:center;
+font-size:16px;
+font-weight:600;
+box-shadow:0 4px 12px rgba(0,0,0,.05);
+cursor:pointer;
+transition:transform .15s ease;
+}
+
+.btn:active{
+transform:scale(.97);
+}
+
+.section{
+margin-top:26px;
+}
+
+.section-title{
+font-size:18px;
+font-weight:700;
+margin-bottom:10px;
+}
+
 .card{
 background:white;
-padding:16px;
 border-radius:14px;
+padding:16px;
 margin-bottom:12px;
 box-shadow:0 4px 12px rgba(0,0,0,.05);
 }
@@ -65,12 +98,6 @@ margin-top:4px;
 
 .rating{
 margin-top:6px;
-}
-
-.loading{
-text-align:center;
-padding:40px;
-color:#777;
 }
 
 </style>
@@ -90,10 +117,36 @@ color:#777;
 
 </div>
 
-<div class="container" id="list">
+<div class="container">
 
-<div class="loading">
-Caricamento ristoranti...
+<div class="grid">
+
+<div class="btn" onclick="openSearch()">
+🔍 Trova ristoranti
+</div>
+
+<div class="btn" onclick="nearby()">
+📍 Vicino a me
+</div>
+
+<div class="btn" onclick="topRated()">
+⭐ Migliori
+</div>
+
+<div class="btn" onclick="addRestaurant()">
+➕ Aggiungi
+</div>
+
+</div>
+
+<div class="section">
+
+<div class="section-title">
+🔥 Scelti dalla community
+</div>
+
+<div id="list"></div>
+
 </div>
 
 </div>
@@ -106,22 +159,11 @@ let restaurants=[]
 
 async function loadRestaurants(){
 
-try{
-
 const res=await fetch(API)
 
 restaurants=await res.json()
 
-render(restaurants)
-
-}
-
-catch(e){
-
-document.getElementById("list").innerHTML=
-"<div class='loading'>Errore caricamento dati</div>"
-
-}
+render(restaurants.slice(0,5))
 
 }
 
@@ -153,21 +195,31 @@ list.appendChild(card)
 
 }
 
-document.getElementById("search").addEventListener("input",e=>{
+function openSearch(){
 
-const q=e.target.value.toLowerCase()
+render(restaurants)
 
-const filtered=restaurants.filter(r=>
+}
 
-r.name.toLowerCase().includes(q) ||
+function topRated(){
 
-r.city.toLowerCase().includes(q)
+const sorted=[...restaurants].sort((a,b)=>(b.rating||0)-(a.rating||0))
 
-)
+render(sorted)
 
-render(filtered)
+}
 
-})
+function nearby(){
+
+alert("Funzione posizione in arrivo")
+
+}
+
+function addRestaurant(){
+
+alert("Funzione aggiungi ristorante in arrivo")
+
+}
 
 loadRestaurants()
 
