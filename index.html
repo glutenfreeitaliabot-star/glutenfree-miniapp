@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Glutenfree bot — Mini App</title>
   <meta name="theme-color" content="#0f766e" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -303,6 +303,56 @@
     const API_BASE = "https://glutenfree-bot-184042068933.europe-west1.run.app";
     const SEARCH_PAGE = "search.html";
 
+    const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+    let premiumLink = "";
+    let userIsPremium = false;
+
+    async function loadPremiumLink(){
+      try{
+        const res = await fetch(`${API_BASE}/api/premium-link`);
+        const data = await res.json();
+        premiumLink = data.premium_bot_link || "";
+      }catch(e){}
+    }
+
+    async function loadQuotaStatus(){
+      try{
+        const initData = tg && tg.initData ? tg.initData : "";
+        const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
+        const url = `${API_BASE}/api/quota?init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        userIsPremium = !!data.is_premium;
+      }catch(e){
+        userIsPremium = false;
+      }
+    }
+
+    function openTelegramPremium(){
+      if (!premiumLink){
+        showToast(t("toastPremium"));
+        return;
+      }
+      if (tg && tg.openTelegramLink){
+        tg.openTelegramLink(premiumLink);
+      } else {
+        window.open(premiumLink, "_blank");
+      }
+    }
+
+    function hardDisableZoom(){
+      document.addEventListener("gesturestart", function(e){ e.preventDefault(); }, {passive:false});
+      let lastTouchEnd = 0;
+      document.addEventListener("touchend", function(e){
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) e.preventDefault();
+        lastTouchEnd = now;
+      }, {passive:false});
+      document.addEventListener("wheel", function(e){
+        if (e.ctrlKey) e.preventDefault();
+      }, {passive:false});
+    }
+
     const i18n = {
       it: {
         eyebrow: "Telegram mini app",
@@ -462,8 +512,7 @@
         <article class="restaurant">
           <div class="restaurant-hero">
             <img src="${r.image}" alt="${escapeHtml(r.name)}" />
-            <div class="restaurant-badge">🌾 Gluten free verified</div>
-            <div class="restaurant-actions">
+                        <div class="restaurant-actions">
               <button class="circle-btn" onclick="showToast('${escapeJs(t("toastFavorites"))}')">♡</button>
               <button class="circle-btn" onclick="window.location.href='${SEARCH_PAGE}?q=${encodeURIComponent(r.name)}'">↗</button>
             </div>
@@ -533,7 +582,7 @@
     document.querySelectorAll("[data-query]").forEach(btn => btn.addEventListener("click", () => openSearchPage(btn.dataset.query)));
     document.getElementById("refreshBtn").addEventListener("click", renderRestaurants);
     document.getElementById("premiumBtn").addEventListener("click", () => document.getElementById("premiumModal").classList.add("show"));
-    document.getElementById("continuePremium").addEventListener("click", () => showToast(t("toastPremium")));
+    document.getElementById("continuePremium").addEventListener("click", openTelegramPremium);
     document.getElementById("closeModal").addEventListener("click", () => document.getElementById("premiumModal").classList.remove("show"));
     document.getElementById("premiumModal").addEventListener("click", e => {
       if (e.target.id === "premiumModal") document.getElementById("premiumModal").classList.remove("show");
@@ -565,6 +614,9 @@
 
     applyTranslations();
     renderRestaurants();
+    hardDisableZoom();
+    loadPremiumLink();
+    loadQuotaStatus();
 
     if (window.Telegram && window.Telegram.WebApp){
       Telegram.WebApp.ready();
