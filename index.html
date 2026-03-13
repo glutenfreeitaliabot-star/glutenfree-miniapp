@@ -1,233 +1,227 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GlutenFree Finder</title>
-
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-<style>
-
-body{
-font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;
-background:#f4f6fb;
-margin:0;
-}
-
-.header{
-background:white;
-padding:20px;
-box-shadow:0 2px 12px rgba(0,0,0,.06);
-position:sticky;
-top:0;
-z-index:10;
-}
-
-.title{
-font-size:24px;
-font-weight:700;
-}
-
-.search{
-margin-top:12px;
-}
-
-.search input{
-width:100%;
-padding:14px;
-border-radius:12px;
-border:1px solid #ddd;
-font-size:16px;
-}
-
-.container{
-padding:16px;
-}
-
-.grid{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:12px;
-margin-top:10px;
-}
-
-.btn{
-background:white;
-border-radius:14px;
-padding:20px;
-text-align:center;
-font-size:16px;
-font-weight:600;
-box-shadow:0 4px 12px rgba(0,0,0,.05);
-cursor:pointer;
-transition:transform .15s ease;
-}
-
-.btn:active{
-transform:scale(.97);
-}
-
-.section{
-margin-top:26px;
-}
-
-.section-title{
-font-size:18px;
-font-weight:700;
-margin-bottom:10px;
-}
-
-.card{
-background:white;
-border-radius:14px;
-padding:16px;
-margin-bottom:12px;
-box-shadow:0 4px 12px rgba(0,0,0,.05);
-}
-
-.name{
-font-weight:700;
-font-size:17px;
-}
-
-.city{
-color:#666;
-margin-top:4px;
-}
-
-.rating{
-margin-top:6px;
-}
-
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>GlutenFree Finder — Mini App</title>
+  <meta name="theme-color" content="#0f172a" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root{
+      --bg:#07111f;--bg-2:#0b1b30;--card:rgba(255,255,255,.78);--text:#0f172a;--muted:#64748b;
+      --brand:#16a34a;--brand-2:#84cc16;--gold:#f59e0b;--shadow:0 20px 50px rgba(2,8,23,.18);
+      --safe-top: env(safe-area-inset-top);--safe-bottom: env(safe-area-inset-bottom);
+    }
+    *{box-sizing:border-box} html,body{margin:0;padding:0}
+    body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;min-height:100vh;color:#fff;
+      background:radial-gradient(circle at 10% 10%, rgba(34,197,94,.28), transparent 24%),radial-gradient(circle at 90% 10%, rgba(132,204,22,.18), transparent 28%),radial-gradient(circle at 50% 90%, rgba(56,189,248,.14), transparent 24%),linear-gradient(160deg, var(--bg), var(--bg-2));overflow-x:hidden}
+    .aurora{position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden}
+    .orb{position:absolute; border-radius:999px; filter:blur(32px); opacity:.45; animation:float 18s ease-in-out infinite}
+    .orb.one{width:240px;height:240px;left:-30px;top:80px;background:#22c55e}.orb.two{width:300px;height:300px;right:-80px;top:140px;background:#38bdf8;animation-delay:-5s}.orb.three{width:260px;height:260px;left:20%;bottom:-80px;background:#f59e0b;animation-delay:-9s}
+    @keyframes float{0%,100%{transform:translateY(0) translateX(0) scale(1)}33%{transform:translateY(-24px) translateX(16px) scale(1.04)}66%{transform:translateY(18px) translateX(-12px) scale(.98)}}
+    .app{position:relative; z-index:1; max-width:980px; margin:0 auto; padding:calc(var(--safe-top) + 18px) 16px calc(var(--safe-bottom) + 28px)}
+    .topbar{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px}
+    .brand{display:flex; align-items:center; gap:14px; min-width:0}
+    .logo-wrap{position:relative; width:62px; height:62px; border-radius:20px; background:linear-gradient(135deg, rgba(255,255,255,.22), rgba(255,255,255,.08)); border:1px solid rgba(255,255,255,.24); box-shadow:0 12px 28px rgba(0,0,0,.18); overflow:hidden; display:grid; place-items:center; backdrop-filter: blur(18px)}
+    .logo-wrap img{width:100%; height:100%; object-fit:cover; display:none}
+    .logo-fallback{font-size:30px}.logo-edit{position:absolute; right:6px; bottom:6px; width:22px; height:22px; border:none; border-radius:999px; background:rgba(15,23,42,.78); color:#fff; display:grid; place-items:center; cursor:pointer; font-size:12px}
+    .eyebrow{font-size:12px; letter-spacing:.12em; text-transform:uppercase; opacity:.78}
+    .title{margin:4px 0 0; font-weight:900; line-height:1.02; letter-spacing:-.03em; font-size:clamp(28px, 5vw, 50px)}
+    .subtitle{margin:8px 0 0; color:rgba(255,255,255,.84); max-width:700px; line-height:1.45; font-size:14px}
+    .top-actions{display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end}
+    .pill{border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.1); color:#fff; padding:10px 14px; border-radius:999px; backdrop-filter: blur(14px); cursor:pointer; font-weight:700; box-shadow:0 10px 24px rgba(0,0,0,.12)}
+    .hero{margin-top:10px;padding:22px;border-radius:28px;background:linear-gradient(135deg, rgba(255,255,255,.18), rgba(255,255,255,.08));border:1px solid rgba(255,255,255,.18);backdrop-filter: blur(18px);box-shadow:0 24px 60px rgba(2,8,23,.22);overflow:hidden;position:relative}
+    .hero-grid{display:grid; gap:18px; grid-template-columns:1.15fr .85fr}
+    .search-shell{background:rgba(255,255,255,.92);color:var(--text);border-radius:22px;border:1px solid rgba(255,255,255,.5);box-shadow: var(--shadow);padding:14px}
+    .search-row{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:10px 12px}
+    .search-row input{flex:1;border:none;outline:none;background:transparent;font-size:16px;color:var(--text)}
+    .search-btn,.primary-btn{border:none;border-radius:14px;padding:12px 16px;cursor:pointer;background:linear-gradient(135deg, var(--brand), var(--brand-2));color:#fff;font-weight:800;box-shadow:0 10px 18px rgba(22,163,74,.22)}
+    .chips{display:flex; gap:10px; flex-wrap:wrap; margin-top:14px}
+    .chip{border:none;cursor:pointer;padding:10px 14px;border-radius:999px;background:#ecfccb;color:#365314;font-weight:700}
+    .chip.alt{background:#dbeafe;color:#1d4ed8}.chip.gold{background:#fef3c7;color:#92400e}
+    .stats-card{background:rgba(7,17,31,.42);border:1px solid rgba(255,255,255,.12);border-radius:24px;padding:18px;display:grid;gap:14px}
+    .mini-stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.mini-stat{padding:16px;border-radius:18px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.12)}
+    .mini-stat .num{font-size:26px;font-weight:900}.mini-stat .lbl{margin-top:6px;font-size:13px;color:rgba(255,255,255,.74)}
+    .nav-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:18px}
+    .nav-card{padding:18px;border-radius:22px;background:rgba(255,255,255,.9);color:var(--text);border:1px solid rgba(255,255,255,.5);box-shadow:var(--shadow);cursor:pointer;transition:transform .18s ease, box-shadow .18s ease;min-height:118px;display:flex;flex-direction:column;justify-content:space-between}
+    .nav-card:hover{transform:translateY(-4px)} .nav-card .icon{font-size:28px}.nav-card .name{font-size:17px;font-weight:900}.nav-card .desc{font-size:13px;color:var(--muted);line-height:1.35}
+    .nav-card.primary{background:linear-gradient(135deg, rgba(34,197,94,.95), rgba(132,204,22,.9));color:#fff}.nav-card.primary .desc{color:rgba(255,255,255,.82)}
+    .section{margin-top:18px;padding:18px;border-radius:28px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.12);backdrop-filter: blur(16px)}
+    .section-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px}
+    .section-title{font-size:20px; font-weight:900; letter-spacing:-.02em}.section-sub{font-size:14px; color:rgba(255,255,255,.78)}
+    .feed,.list-grid{display:grid; gap:14px; grid-template-columns:repeat(2,minmax(0,1fr))}
+    .restaurant-card{background:var(--card);color:var(--text);border-radius:24px;border:1px solid rgba(255,255,255,.55);box-shadow:var(--shadow);overflow:hidden}
+    .cover{height:132px;background:linear-gradient(145deg, rgba(22,163,74,.95), rgba(245,158,11,.72));position:relative;display:flex;align-items:flex-end;justify-content:space-between;padding:14px}
+    .badge{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:8px 12px;background:rgba(255,255,255,.88);color:#14532d;font-weight:800;font-size:12px}
+    .floating-actions{display:flex;gap:8px}.icon-btn{border:none;cursor:pointer;width:40px;height:40px;border-radius:999px;background:rgba(255,255,255,.86);font-size:18px}
+    .restaurant-body{padding:16px}.restaurant-title{font-size:22px;line-height:1.12;font-weight:900;letter-spacing:-.03em;margin:0}
+    .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;color:var(--muted);font-size:14px}.meta span{background:rgba(15,23,42,.05);border-radius:999px;padding:8px 10px}
+    .restaurant-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:14px}.rating{font-size:22px;font-weight:900;color:var(--gold)}
+    .ghost-link{border:none;background:none;cursor:pointer;color:#166534;font-weight:900}
+    .panel{display:none;margin-top:18px;padding:18px;border-radius:28px;background:rgba(255,255,255,.92);color:var(--text);box-shadow:var(--shadow)} .panel.active{display:block}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+    .toolbar input,.toolbar select,.toolbar textarea{width:100%;border:1px solid #e5e7eb;border-radius:16px;padding:12px 14px;font:inherit;outline:none;background:#fff}
+    .toolbar .field{flex:1 1 220px}.secondary-btn{border:none;cursor:pointer;border-radius:16px;padding:12px 16px;font-weight:900;background:#eef2ff;color:#3730a3}
+    .empty{padding:30px 16px;text-align:center;color:var(--muted)} .small-muted{font-size:13px;color:var(--muted)}
+    .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.form-grid .full{grid-column:1 / -1}
+    .toast{position:fixed;left:50%;bottom:calc(var(--safe-bottom) + 20px);transform:translateX(-50%) translateY(30px);background:rgba(15,23,42,.92);color:#fff;padding:14px 16px;border-radius:18px;opacity:0;pointer-events:none;z-index:99;transition:all .25s ease}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    .skeleton{overflow:hidden; position:relative; background:#e5e7eb; min-height:220px; border-radius:22px}.skeleton::after{content:""; position:absolute; inset:0; transform:translateX(-100%); background:linear-gradient(90deg, transparent, rgba(255,255,255,.65), transparent); animation:shimmer 1.3s infinite}
+    @keyframes shimmer{100%{transform:translateX(100%)}} .lang-toggle{display:flex;gap:8px;align-items:center;background:rgba(255,255,255,.12);border-radius:999px;padding:6px}.lang-toggle button{border:none;background:transparent;color:#fff;padding:8px 12px;border-radius:999px;cursor:pointer;font-weight:900}.lang-toggle button.active{background:#fff;color:var(--text)}
+    .divider{height:1px;background:#e5e7eb;margin:14px 0}
+    @media (max-width:860px){.hero-grid,.feed,.list-grid,.form-grid,.nav-grid{grid-template-columns:1fr}.topbar{flex-direction:column;align-items:flex-start}.top-actions{width:100%;justify-content:space-between}}
+  </style>
 </head>
-
 <body>
+  <div class="aurora"><div class="orb one"></div><div class="orb two"></div><div class="orb three"></div></div>
+  <div class="app">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo-wrap">
+          <img id="logoImage" alt="Logo" />
+          <div id="logoFallback" class="logo-fallback">🌾</div>
+          <button class="logo-edit" id="logoEditBtn">✎</button>
+        </div>
+        <div class="brand-copy">
+          <div class="eyebrow" data-i18n="eyebrow">Mini app Telegram premium</div>
+          <h1 class="title">GlutenFree Finder</h1>
+          <p class="subtitle" data-i18n="subtitle">La home giusta per scoprire locali gluten free, salvare preferiti, cercare vicino a te e inviare suggerimenti alla community.</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <div class="lang-toggle"><button id="langIt" class="active">IT</button><button id="langEn">EN</button></div>
+        <button class="pill" id="refreshBtn" data-i18n="refresh">Aggiorna</button>
+        <button class="pill" id="communityBtn" data-i18n="community">Community</button>
+      </div>
+    </div>
 
-<div class="header">
+    <section class="hero">
+      <div class="hero-grid">
+        <div class="search-shell">
+          <div class="search-row"><span>🔎</span><input id="globalSearch" type="text" /><button class="search-btn" id="globalSearchBtn" data-i18n="searchBtn">Cerca</button></div>
+          <div class="chips"><button class="chip" id="quickNearby" data-i18n="nearby">Vicino a me</button><button class="chip alt" id="quickTop" data-i18n="topRated">Migliori</button><button class="chip gold" id="quickFavs" data-i18n="favorites">Preferiti</button></div>
+        </div>
+        <div class="stats-card">
+          <div class="section-title" data-i18n="dashboard">Dashboard</div>
+          <div class="mini-stat-grid">
+            <div class="mini-stat"><div class="num" id="statRestaurants">0</div><div class="lbl" data-i18n="statRestaurants">Ristoranti</div></div>
+            <div class="mini-stat"><div class="num" id="statFavorites">0</div><div class="lbl" data-i18n="statFavorites">Preferiti</div></div>
+            <div class="mini-stat"><div class="num" id="statTop">0</div><div class="lbl" data-i18n="statTop">Top rated</div></div>
+            <div class="mini-stat"><div class="num" id="statCities">0</div><div class="lbl" data-i18n="statCities">Città</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="nav-grid">
+        <div class="nav-card primary" data-target="discoverPanel"><div class="icon">🔍</div><div class="name" data-i18n="navDiscover">Trova ristoranti</div><div class="desc" data-i18n="navDiscoverDesc">Ricerca veloce, filtri smart e lista completa.</div></div>
+        <div class="nav-card" data-target="nearbyPanel"><div class="icon">📍</div><div class="name" data-i18n="navNearby">Vicino a me</div><div class="desc" data-i18n="navNearbyDesc">Usa la posizione per trovare i locali più vicini.</div></div>
+        <div class="nav-card" data-target="favoritesPanel"><div class="icon">⭐</div><div class="name" data-i18n="navFavs">Preferiti</div><div class="desc" data-i18n="navFavsDesc">Salva i locali migliori per ritrovarli subito.</div></div>
+        <div class="nav-card" data-target="addPanel"><div class="icon">➕</div><div class="name" data-i18n="navAdd">Aggiungi locale</div><div class="desc" data-i18n="navAddDesc">Invia una segnalazione o un nuovo ristorante.</div></div>
+      </div>
+    </section>
 
-<div class="title">
-🌾 GlutenFree Finder
-</div>
+    <section class="section" id="homeFeed">
+      <div class="section-head"><div><div class="section-title" data-i18n="communityPicks">Scelti dalla community</div><div class="section-sub" data-i18n="communitySub">Una selezione curata per far partire bene l’esperienza.</div></div><button class="pill" id="seeAllBtn" data-i18n="seeAll">Vedi tutti</button></div>
+      <div class="feed" id="featuredFeed"><div class="skeleton"></div><div class="skeleton"></div></div>
+    </section>
 
-<div class="search">
-<input id="search" placeholder="Cerca città o ristorante...">
-</div>
+    <section class="panel" id="discoverPanel">
+      <div class="section-head"><div><div class="section-title" data-i18n="discoverTitle">Esplora ristoranti</div><div class="section-sub" data-i18n="discoverSub">Ricerca per nome o città, ordina e scorri la lista completa.</div></div></div>
+      <div class="toolbar"><div class="field"><input id="discoverSearch" /></div><div class="field"><select id="sortSelect"><option value="rating-desc">⭐ Rating alto</option><option value="rating-asc">⭐ Rating basso</option><option value="name-asc">A-Z</option><option value="city-asc">Città A-Z</option></select></div><button class="primary-btn" id="clearSearchBtn" data-i18n="clear">Pulisci</button></div>
+      <div class="list-grid" id="discoverList"></div><div class="empty" id="discoverEmpty" style="display:none" data-i18n="noResults">Nessun risultato trovato.</div>
+    </section>
 
-</div>
+    <section class="panel" id="nearbyPanel">
+      <div class="section-head"><div><div class="section-title" data-i18n="nearbyTitle">Vicino a me</div><div class="section-sub" data-i18n="nearbySub">Se il backend espone lat/lon, qui possiamo calcolare le distanze reali.</div></div></div>
+      <div class="toolbar"><button class="primary-btn" id="detectLocationBtn" data-i18n="detectLocation">Usa la mia posizione</button><button class="secondary-btn" id="nearbyHelpBtn" data-i18n="howItWorks">Come funziona</button></div>
+      <div class="small-muted" id="nearbyStatus" data-i18n="nearbyHint">Tocca “Usa la mia posizione”. Se il backend non fornisce coordinate dei ristoranti, mostreremo un messaggio chiaro invece di fingere magia.</div>
+      <div class="divider"></div><div class="list-grid" id="nearbyList"></div><div class="empty" id="nearbyEmpty" style="display:none"></div>
+    </section>
 
-<div class="container">
+    <section class="panel" id="favoritesPanel">
+      <div class="section-head"><div><div class="section-title" data-i18n="favoritesTitle">I tuoi preferiti</div><div class="section-sub" data-i18n="favoritesSub">Salvati sul dispositivo. Veloci, semplici, senza attriti inutili.</div></div></div>
+      <div class="list-grid" id="favoritesList"></div><div class="empty" id="favoritesEmpty" data-i18n="favoritesEmpty">Non hai ancora salvato preferiti.</div>
+    </section>
 
-<div class="grid">
+    <section class="panel" id="addPanel">
+      <div class="section-head"><div><div class="section-title" data-i18n="addTitle">Aggiungi un ristorante</div><div class="section-sub" data-i18n="addSub">La community cresce se qualcuno segnala bene, non se tutti si lamentano male.</div></div></div>
+      <div class="form-grid">
+        <div><input id="addName" /></div><div><input id="addCity" /></div><div class="full"><input id="addAddress" /></div><div><input id="addPhone" /></div><div><input id="addWebsite" /></div><div class="full"><textarea id="addNotes" rows="5"></textarea></div>
+      </div>
+      <div class="toolbar" style="margin-top:12px"><button class="primary-btn" id="submitSuggestionBtn" data-i18n="sendSuggestion">Invia segnalazione</button><button class="secondary-btn" id="saveDraftBtn" data-i18n="saveDraft">Salva bozza</button></div>
+      <div class="small-muted" id="suggestionStatus" data-i18n="suggestionHint">Se il backend non ha ancora l’endpoint dedicato, salviamo la bozza localmente senza perdere niente.</div>
+    </section>
 
-<div class="btn" onclick="openSearch()">
-🔍 Trova ristoranti
-</div>
+    <div class="toast" id="toast"></div>
+    <input type="file" id="logoInput" accept="image/*" style="display:none" />
+  </div>
 
-<div class="btn" onclick="nearby()">
-📍 Vicino a me
-</div>
+  <script>
+    const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+    if (tg){ tg.expand(); tg.setHeaderColor && tg.setHeaderColor('#07111f'); tg.setBackgroundColor && tg.setBackgroundColor('#07111f'); }
 
-<div class="btn" onclick="topRated()">
-⭐ Migliori
-</div>
-
-<div class="btn" onclick="addRestaurant()">
-➕ Aggiungi
-</div>
-
-</div>
-
-<div class="section">
-
-<div class="section-title">
-🔥 Scelti dalla community
-</div>
-
-<div id="list"></div>
-
-</div>
-
-</div>
-
-<script>
-
-const API="https://glutenfree-bot-184042068933.europe-west1.run.app/api/restaurants"
-
-let restaurants=[]
-
-async function loadRestaurants(){
-
-const res=await fetch(API)
-
-restaurants=await res.json()
-
-render(restaurants.slice(0,5))
-
-}
-
-function render(data){
-
-const list=document.getElementById("list")
-
-list.innerHTML=""
-
-data.forEach(r=>{
-
-const card=document.createElement("div")
-
-card.className="card"
-
-card.innerHTML=`
-
-<div class="name">${r.name}</div>
-
-<div class="city">📍 ${r.city}</div>
-
-<div class="rating">⭐ ${r.rating ?? "n.d."}</div>
-
-`
-
-list.appendChild(card)
-
-})
-
-}
-
-function openSearch(){
-
-render(restaurants)
-
-}
-
-function topRated(){
-
-const sorted=[...restaurants].sort((a,b)=>(b.rating||0)-(a.rating||0))
-
-render(sorted)
-
-}
-
-function nearby(){
-
-alert("Funzione posizione in arrivo")
-
-}
-
-function addRestaurant(){
-
-alert("Funzione aggiungi ristorante in arrivo")
-
-}
-
-loadRestaurants()
-
-const tg=window.Telegram.WebApp
-
-tg.expand()
-
-</script>
-
+    const API_BASE = 'https://glutenfree-bot-184042068933.europe-west1.run.app';
+    const API_RESTAURANTS = API_BASE + '/api/restaurants';
+    const API_SUGGEST = API_BASE + '/api/suggest';
+    const STORE = { favorites:'gf-miniapp-favorites', logo:'gf-miniapp-logo', lang:'gf-miniapp-lang', draft:'gf-miniapp-draft' };
+    const i18n = {
+      it:{eyebrow:'Mini app Telegram premium',subtitle:'La home giusta per scoprire locali gluten free, salvare preferiti, cercare vicino a te e inviare suggerimenti alla community.',refresh:'Aggiorna',community:'Community',searchBtn:'Cerca',nearby:'Vicino a me',topRated:'Migliori',favorites:'Preferiti',dashboard:'Dashboard',statRestaurants:'Ristoranti',statFavorites:'Preferiti',statTop:'Top rated',statCities:'Città',navDiscover:'Trova ristoranti',navDiscoverDesc:'Ricerca veloce, filtri smart e lista completa.',navNearby:'Vicino a me',navNearbyDesc:'Usa la posizione per trovare i locali più vicini.',navFavs:'Preferiti',navFavsDesc:'Salva i locali migliori per ritrovarli subito.',navAdd:'Aggiungi locale',navAddDesc:'Invia una segnalazione o un nuovo ristorante.',communityPicks:'Scelti dalla community',communitySub:'Una selezione curata per far partire bene l’esperienza.',seeAll:'Vedi tutti',discoverTitle:'Esplora ristoranti',discoverSub:'Ricerca per nome o città, ordina e scorri la lista completa.',clear:'Pulisci',noResults:'Nessun risultato trovato.',nearbyTitle:'Vicino a me',nearbySub:'Se il backend espone lat/lon, qui possiamo calcolare le distanze reali.',detectLocation:'Usa la mia posizione',howItWorks:'Come funziona',nearbyHint:'Tocca “Usa la mia posizione”. Se il backend non fornisce coordinate dei ristoranti, mostreremo un messaggio chiaro invece di fingere magia.',nearbyUnavailable:'Nessuna distanza disponibile: il backend non sta ancora restituendo coordinate per i ristoranti.',nearbyDenied:'Posizione non disponibile o permesso negato.',favoritesTitle:'I tuoi preferiti',favoritesSub:'Salvati sul dispositivo. Veloci, semplici, senza attriti inutili.',favoritesEmpty:'Non hai ancora salvato preferiti.',addTitle:'Aggiungi un ristorante',addSub:'La community cresce se qualcuno segnala bene, non se tutti si lamentano male.',sendSuggestion:'Invia segnalazione',saveDraft:'Salva bozza',suggestionHint:'Se il backend non ha ancora l’endpoint dedicato, salviamo la bozza localmente senza perdere niente.',addName:'Nome ristorante',addCity:'Città',addAddress:'Indirizzo',addPhone:'Telefono',addWebsite:'Sito web / Instagram',addNotes:'Note utili, esperienza, prodotti, accortezze...',globalSearch:'Cerca città o ristorante...',discoverSearch:'Filtra per città o nome...',favoriteSaved:'Aggiunto ai preferiti',favoriteRemoved:'Rimosso dai preferiti',logoChanged:'Logo aggiornato',draftSaved:'Bozza salvata sul dispositivo',suggestionSent:'Segnalazione inviata',suggestionSaved:'Segnalazione salvata localmente',share:'Condiviso',maps:'Apri Maps',details:'Dettagli',ratingLabel:'Valutazione',cityLabel:'Città',nearbyMsg:'Se il backend invierà lat/lon, qui appariranno i locali vicini davvero. Per ora niente fumo negli occhi.',guideMsg:'Per il “vicino a me” servono coordinate del ristorante dal backend. Senza quelle non si calcolano distanze reali.'},
+      en:{eyebrow:'Premium Telegram mini app',subtitle:'The right homepage to discover gluten free places, save favorites, search nearby and send suggestions to the community.',refresh:'Refresh',community:'Community',searchBtn:'Search',nearby:'Nearby',topRated:'Top rated',favorites:'Favorites',dashboard:'Dashboard',statRestaurants:'Restaurants',statFavorites:'Favorites',statTop:'Top rated',statCities:'Cities',navDiscover:'Find restaurants',navDiscoverDesc:'Fast search, smart filters and full list.',navNearby:'Near me',navNearbyDesc:'Use your location to find the closest places.',navFavs:'Favorites',navFavsDesc:'Save the best places and find them instantly.',navAdd:'Add place',navAddDesc:'Send a suggestion or a new restaurant.',communityPicks:'Community picks',communitySub:'A curated selection to start the experience the right way.',seeAll:'See all',discoverTitle:'Explore restaurants',discoverSub:'Search by name or city, sort and browse the full list.',clear:'Clear',noResults:'No results found.',nearbyTitle:'Near me',nearbySub:'If the backend exposes lat/lon, we can compute real distances here.',detectLocation:'Use my location',howItWorks:'How it works',nearbyHint:'Tap “Use my location”. If the backend does not provide restaurant coordinates, we will show a clear message instead of pretending magic.',nearbyUnavailable:'No distance available: the backend is not returning restaurant coordinates yet.',nearbyDenied:'Location unavailable or permission denied.',favoritesTitle:'Your favorites',favoritesSub:'Stored on device. Fast, simple, no pointless friction.',favoritesEmpty:'You have no favorites yet.',addTitle:'Add a restaurant',addSub:'Communities grow when someone reports things well, not when everyone complains badly.',sendSuggestion:'Send suggestion',saveDraft:'Save draft',suggestionHint:'If the backend does not have a dedicated endpoint yet, we save the draft locally so nothing gets lost.',addName:'Restaurant name',addCity:'City',addAddress:'Address',addPhone:'Phone',addWebsite:'Website / Instagram',addNotes:'Useful notes, experience, products, precautions...',globalSearch:'Search city or restaurant...',discoverSearch:'Filter by city or name...',favoriteSaved:'Added to favorites',favoriteRemoved:'Removed from favorites',logoChanged:'Logo updated',draftSaved:'Draft saved on device',suggestionSent:'Suggestion sent',suggestionSaved:'Suggestion saved locally',share:'Shared',maps:'Open Maps',details:'Details',ratingLabel:'Rating',cityLabel:'City',nearbyMsg:'When the backend sends lat/lon, real nearby places will appear here. Until then, no smoke and mirrors.',guideMsg:'“Near me” needs restaurant coordinates from the backend. Without them, you cannot compute real distances.'}
+    };
+    const state = { lang: localStorage.getItem(STORE.lang) || 'it', restaurants: [], favorites: JSON.parse(localStorage.getItem(STORE.favorites) || '[]') };
+    const els = { featuredFeed:document.getElementById('featuredFeed'), discoverList:document.getElementById('discoverList'), discoverEmpty:document.getElementById('discoverEmpty'), favoritesList:document.getElementById('favoritesList'), favoritesEmpty:document.getElementById('favoritesEmpty'), nearbyList:document.getElementById('nearbyList'), nearbyEmpty:document.getElementById('nearbyEmpty'), nearbyStatus:document.getElementById('nearbyStatus'), statRestaurants:document.getElementById('statRestaurants'), statFavorites:document.getElementById('statFavorites'), statTop:document.getElementById('statTop'), statCities:document.getElementById('statCities'), globalSearch:document.getElementById('globalSearch'), discoverSearch:document.getElementById('discoverSearch'), sortSelect:document.getElementById('sortSelect'), toast:document.getElementById('toast'), logoImage:document.getElementById('logoImage'), logoFallback:document.getElementById('logoFallback'), logoInput:document.getElementById('logoInput') };
+    const t = key => (i18n[state.lang] && i18n[state.lang][key]) || key;
+    function showToast(message){ els.toast.textContent = message; els.toast.classList.add('show'); clearTimeout(showToast._t); showToast._t = setTimeout(() => els.toast.classList.remove('show'), 2200); }
+    function setLogoFromStorage(){ const logo = localStorage.getItem(STORE.logo); if (logo){ els.logoImage.src = logo; els.logoImage.style.display = 'block'; els.logoFallback.style.display = 'none'; } else { els.logoImage.style.display = 'none'; els.logoFallback.style.display = 'grid'; } }
+    function setPanel(id){ document.querySelectorAll('.panel').forEach(p => p.classList.remove('active')); if (id){ const el = document.getElementById(id); el.classList.add('active'); el.scrollIntoView({behavior:'smooth', block:'start'}); } }
+    function openMaps(r){ const q = [r.name, r.city, r.address].filter(Boolean).join(' '); window.open('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q), '_blank'); }
+    function isFavorite(r){ const id = r.id || `${r.name}|${r.city}`; return state.favorites.some(f => (f.id || `${f.name}|${f.city}`) === id); }
+    function toggleFavorite(r){ const id = r.id || `${r.name}|${r.city}`; if (isFavorite(r)){ state.favorites = state.favorites.filter(f => (f.id || `${f.name}|${f.city}`) !== id); showToast(t('favoriteRemoved')); } else { state.favorites.unshift(r); showToast(t('favoriteSaved')); } localStorage.setItem(STORE.favorites, JSON.stringify(state.favorites)); updateStats(); renderFavorites(); renderFeatured(); renderDiscover(); }
+    function restaurantCard(r){ const card = document.createElement('article'); card.className = 'restaurant-card'; card.innerHTML = `<div class="cover"><span class="badge">🌾 Gluten Free</span><div class="floating-actions"><button class="icon-btn fav-btn">${isFavorite(r) ? '❤️' : '🤍'}</button><button class="icon-btn share-btn">↗</button></div></div><div class="restaurant-body"><h3 class="restaurant-title">${r.name || '—'}</h3><div class="meta">${[r.city ? `📍 ${r.city}` : null, r.types ? `🍽 ${r.types}` : null, r.phone ? `📞 ${r.phone}` : null].filter(Boolean).slice(0,3).map(x => `<span>${x}</span>`).join('')}</div><div class="restaurant-foot"><div class="rating">⭐ ${r.rating ?? 'n.d.'}</div><div style="display:flex; gap:10px; flex-wrap:wrap"><button class="ghost-link maps-link">${t('maps')}</button><button class="ghost-link details-link">${t('details')}</button></div></div></div>`;
+      card.querySelector('.fav-btn').addEventListener('click', () => toggleFavorite(r));
+      card.querySelector('.share-btn').addEventListener('click', async () => { const text = `${r.name} — ${r.city || ''}`; if (navigator.share){ try { await navigator.share({ title:r.name, text }); } catch(e){} } else { try { await navigator.clipboard.writeText(text); showToast(t('share')); } catch(e){} } });
+      card.querySelector('.maps-link').addEventListener('click', () => openMaps(r));
+      card.querySelector('.details-link').addEventListener('click', () => alert([r.name, `${t('cityLabel')}: ${r.city || '—'}`, `${t('ratingLabel')}: ${r.rating ?? 'n.d.'}`, r.address ? `Address: ${r.address}` : '', r.phone ? `Phone: ${r.phone}` : '', r.notes ? `Notes: ${r.notes}` : ''].filter(Boolean).join('\n')));
+      return card;
+    }
+    function renderFeatured(){ els.featuredFeed.innerHTML = ''; [...state.restaurants].sort((a,b) => (Number(b.rating)||0) - (Number(a.rating)||0)).slice(0,4).forEach(r => els.featuredFeed.appendChild(restaurantCard(r))); }
+    function renderDiscover(items){ const q = (els.discoverSearch.value || '').toLowerCase().trim(); let data = items || [...state.restaurants]; if (q){ data = data.filter(r => String(r.name||'').toLowerCase().includes(q) || String(r.city||'').toLowerCase().includes(q)); }
+      if (els.sortSelect.value === 'rating-asc') data.sort((a,b) => (Number(a.rating)||0) - (Number(b.rating)||0));
+      else if (els.sortSelect.value === 'name-asc') data.sort((a,b) => String(a.name||'').localeCompare(String(b.name||'')));
+      else if (els.sortSelect.value === 'city-asc') data.sort((a,b) => String(a.city||'').localeCompare(String(b.city||'')));
+      else data.sort((a,b) => (Number(b.rating)||0) - (Number(a.rating)||0));
+      els.discoverList.innerHTML = ''; if (!data.length){ els.discoverEmpty.style.display='block'; return; } els.discoverEmpty.style.display='none'; data.forEach(r => els.discoverList.appendChild(restaurantCard(r)));
+    }
+    function renderFavorites(){ els.favoritesList.innerHTML = ''; els.favoritesEmpty.style.display = state.favorites.length ? 'none' : 'block'; state.favorites.forEach(r => els.favoritesList.appendChild(restaurantCard(r))); }
+    function updateStats(){ const ratings = state.restaurants.map(r => Number(r.rating)||0).filter(Boolean); const cities = new Set(state.restaurants.map(r => r.city).filter(Boolean)); els.statRestaurants.textContent = state.restaurants.length; els.statFavorites.textContent = state.favorites.length; els.statTop.textContent = ratings.length ? Math.max(...ratings).toFixed(1) : '0'; els.statCities.textContent = cities.size; }
+    function haversine(a,b,c,d){ const R=6371,toRad=x=>x*Math.PI/180, dLat=toRad(c-a), dLon=toRad(d-b); const x=Math.sin(dLat/2)**2 + Math.cos(toRad(a))*Math.cos(toRad(c))*Math.sin(dLon/2)**2; return 2*R*Math.asin(Math.sqrt(x)); }
+    function detectNearby(){ els.nearbyList.innerHTML=''; els.nearbyEmpty.style.display='none'; if (!navigator.geolocation){ els.nearbyEmpty.style.display='block'; els.nearbyEmpty.textContent=t('nearbyDenied'); return; } navigator.geolocation.getCurrentPosition(pos => { const withCoords = state.restaurants.filter(r => r.lat != null && r.lon != null); if (!withCoords.length){ els.nearbyEmpty.style.display='block'; els.nearbyEmpty.textContent=t('nearbyUnavailable'); els.nearbyStatus.textContent=t('guideMsg'); return; } const enriched = withCoords.map(r => ({...r, distance:haversine(pos.coords.latitude, pos.coords.longitude, Number(r.lat), Number(r.lon))})).sort((a,b) => a.distance - b.distance); enriched.slice(0,10).forEach(r => { const clone = {...r, city:`${r.city || '—'} • ${r.distance.toFixed(1)} km`}; els.nearbyList.appendChild(restaurantCard(clone)); }); }, () => { els.nearbyEmpty.style.display='block'; els.nearbyEmpty.textContent=t('nearbyDenied'); }, {enableHighAccuracy:true, timeout:10000}); }
+    function saveDraft(){ const draft = {name:document.getElementById('addName').value,city:document.getElementById('addCity').value,address:document.getElementById('addAddress').value,phone:document.getElementById('addPhone').value,website:document.getElementById('addWebsite').value,notes:document.getElementById('addNotes').value}; localStorage.setItem(STORE.draft, JSON.stringify(draft)); showToast(t('draftSaved')); }
+    function loadDraft(){ const draft = localStorage.getItem(STORE.draft); if (!draft) return; try { const d = JSON.parse(draft); document.getElementById('addName').value=d.name||''; document.getElementById('addCity').value=d.city||''; document.getElementById('addAddress').value=d.address||''; document.getElementById('addPhone').value=d.phone||''; document.getElementById('addWebsite').value=d.website||''; document.getElementById('addNotes').value=d.notes||''; } catch(e){} }
+    async function submitSuggestion(){ const payload = { name:document.getElementById('addName').value.trim(), city:document.getElementById('addCity').value.trim(), address:document.getElementById('addAddress').value.trim(), phone:document.getElementById('addPhone').value.trim(), website:document.getElementById('addWebsite').value.trim(), notes:document.getElementById('addNotes').value.trim() }; if (!payload.name || !payload.city){ showToast('Nome e città sono obbligatori.'); return; } try { const res = await fetch(API_SUGGEST, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) }); if (!res.ok) throw new Error('endpoint-missing'); showToast(t('suggestionSent')); localStorage.removeItem(STORE.draft); } catch(e){ saveDraft(); showToast(t('suggestionSaved')); } }
+    async function fetchRestaurants(){ try { const res = await fetch(API_RESTAURANTS, {cache:'no-store'}); if (!res.ok) throw new Error('HTTP '+res.status); const data = await res.json(); state.restaurants = Array.isArray(data) ? data : []; updateStats(); renderFeatured(); renderDiscover(); renderFavorites(); } catch(e){ els.featuredFeed.innerHTML = `<div class="empty" style="grid-column:1/-1">Errore caricamento dati: ${e.message}</div>`; } }
+    function applyTranslations(){ document.documentElement.lang = state.lang; document.querySelectorAll('[data-i18n]').forEach(n => n.textContent = t(n.dataset.i18n)); document.getElementById('globalSearch').placeholder = t('globalSearch'); document.getElementById('discoverSearch').placeholder = t('discoverSearch'); document.getElementById('addName').placeholder = t('addName'); document.getElementById('addCity').placeholder = t('addCity'); document.getElementById('addAddress').placeholder = t('addAddress'); document.getElementById('addPhone').placeholder = t('addPhone'); document.getElementById('addWebsite').placeholder = t('addWebsite'); document.getElementById('addNotes').placeholder = t('addNotes'); document.getElementById('langIt').classList.toggle('active', state.lang==='it'); document.getElementById('langEn').classList.toggle('active', state.lang==='en'); renderFavorites(); renderFeatured(); renderDiscover(); }
+    function connectEvents(){
+      document.querySelectorAll('.nav-card').forEach(card => card.addEventListener('click', () => setPanel(card.dataset.target)));
+      document.getElementById('seeAllBtn').addEventListener('click', () => setPanel('discoverPanel'));
+      document.getElementById('quickTop').addEventListener('click', () => { setPanel('discoverPanel'); els.sortSelect.value='rating-desc'; renderDiscover(); });
+      document.getElementById('quickFavs').addEventListener('click', () => setPanel('favoritesPanel'));
+      document.getElementById('quickNearby').addEventListener('click', () => setPanel('nearbyPanel'));
+      document.getElementById('communityBtn').addEventListener('click', () => window.scrollTo({top:document.getElementById('homeFeed').offsetTop-12, behavior:'smooth'}));
+      document.getElementById('refreshBtn').addEventListener('click', fetchRestaurants);
+      document.getElementById('globalSearchBtn').addEventListener('click', () => { els.discoverSearch.value = els.globalSearch.value; setPanel('discoverPanel'); renderDiscover(); });
+      document.getElementById('globalSearch').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('globalSearchBtn').click(); });
+      document.getElementById('discoverSearch').addEventListener('input', renderDiscover);
+      document.getElementById('sortSelect').addEventListener('change', renderDiscover);
+      document.getElementById('clearSearchBtn').addEventListener('click', () => { els.discoverSearch.value=''; renderDiscover(); });
+      document.getElementById('detectLocationBtn').addEventListener('click', detectNearby);
+      document.getElementById('nearbyHelpBtn').addEventListener('click', () => alert(t('nearbyMsg')));
+      document.getElementById('submitSuggestionBtn').addEventListener('click', submitSuggestion);
+      document.getElementById('saveDraftBtn').addEventListener('click', saveDraft);
+      document.getElementById('langIt').addEventListener('click', () => { state.lang='it'; localStorage.setItem(STORE.lang, 'it'); applyTranslations(); });
+      document.getElementById('langEn').addEventListener('click', () => { state.lang='en'; localStorage.setItem(STORE.lang, 'en'); applyTranslations(); });
+      document.getElementById('logoEditBtn').addEventListener('click', () => els.logoInput.click());
+      els.logoInput.addEventListener('change', e => { const file = e.target.files && e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => { localStorage.setItem(STORE.logo, reader.result); setLogoFromStorage(); showToast(t('logoChanged')); }; reader.readAsDataURL(file); });
+    }
+    loadDraft(); setLogoFromStorage(); connectEvents(); applyTranslations(); fetchRestaurants();
+  </script>
 </body>
 </html>
