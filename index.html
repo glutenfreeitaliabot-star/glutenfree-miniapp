@@ -1,187 +1,158 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
+<!DOCTYPE html>
+<html lang="it">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta http-equiv="Content-Style-Type" content="text/css">
-  <title></title>
-  <meta name="Generator" content="Cocoa HTML Writer">
-  <meta name="CocoaVersion" content="2685.3">
-  <style type="text/css">
-    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; -webkit-text-stroke: #000000}
-    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; -webkit-text-stroke: #000000; min-height: 14.0px}
-    span.s1 {font-kerning: none}
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GlutenFree Finder</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root{
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --accent:#22c55e;
+      --border:#e5e7eb;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    .header{
+      position:sticky;
+      top:0;
+      z-index:10;
+      background:#fff;
+      border-bottom:1px solid var(--border);
+      padding:16px;
+    }
+    .title{
+      font-size:22px;
+      font-weight:700;
+      margin-bottom:10px;
+    }
+    .search input{
+      width:100%;
+      padding:12px 14px;
+      border:1px solid var(--border);
+      border-radius:12px;
+      font-size:16px;
+      outline:none;
+    }
+    .container{
+      padding:16px;
+    }
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:16px;
+      margin-bottom:12px;
+      box-shadow:0 4px 18px rgba(0,0,0,.05);
+    }
+    .name{
+      font-size:18px;
+      font-weight:700;
+      margin-bottom:6px;
+    }
+    .city,.rating{
+      color:var(--muted);
+      font-size:15px;
+      margin-top:4px;
+    }
+    .loading,.empty,.error{
+      text-align:center;
+      color:var(--muted);
+      padding:32px 16px;
+    }
+    .error{
+      color:#b91c1c;
+    }
+    .hint{
+      font-size:13px;
+      color:var(--muted);
+      margin-top:8px;
+    }
   </style>
 </head>
 <body>
-<p class="p1"><span class="s1">&lt;!DOCTYPE html&gt;</span></p>
-<p class="p1"><span class="s1">&lt;html&gt;</span></p>
-<p class="p1"><span class="s1">&lt;head&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">&lt;meta charset="UTF-8"&gt;</span></p>
-<p class="p1"><span class="s1">&lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">&lt;title&gt;GlutenFree Finder&lt;/title&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">&lt;script src="https://telegram.org/js/telegram-web-app.js"&gt;&lt;/script&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">&lt;style&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">body{</span></p>
-<p class="p1"><span class="s1">font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;</span></p>
-<p class="p1"><span class="s1">background:#f6f7fb;</span></p>
-<p class="p1"><span class="s1">margin:0;</span></p>
-<p class="p1"><span class="s1">padding:0;</span></p>
-<p class="p1"><span class="s1">}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">.header{</span></p>
-<p class="p1"><span class="s1">background:white;</span></p>
-<p class="p1"><span class="s1">padding:20px;</span></p>
-<p class="p1"><span class="s1">box-shadow:0 2px 10px rgba(0,0,0,0.05);</span></p>
-<p class="p1"><span class="s1">position:sticky;</span></p>
-<p class="p1"><span class="s1">top:0;</span></p>
-<p class="p1"><span class="s1">z-index:10;</span></p>
-<p class="p1"><span class="s1">}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">.title{</span></p>
-<p class="p1"><span class="s1">font-size:22px;</span></p>
-<p class="p1"><span class="s1">font-weight:700;</span></p>
-<p class="p1"><span class="s1">}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">.search{</span></p>
-<p class="p1"><span class="s1">margin-top:10px;</span></p>
-<p class="p1"><span class="s1">}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">.search input{</span></p>
-<p class="p1"><span class="s1">width:100%;</span></p>
-<p class="p1"><span class="s1">padding:12px;</span></p>
-<p class="p1"><span class="s1">border-radius:10px;</span></p>
-<p class="p1"><span class="s1">border:1px solid #ddd;</span></p>
-<p class="p1"><span class="s1">font-size:16px;</span></p>
-<p class="p1"><span class="s1">}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">.container{</span></p>
-<p class="p1"><span class="s1">padding:16px;</span></p>
-<p class="p1"><span class="s1">}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">.card{</span></p>
-<p class="p1"><span class="s1">background:white;</span></p>
-<p class="p1"><span class="s1">border-radius:14px;</span></p>
-<p class="p1"><span class="s1">padding:16px;</span></p>
-<p class="p1"><span class="s1">margin-bottom:12px;</span></p>
-<p class="p1"><span class="s1">box-shadow:0 4px 12px rgba(0,0,0,0.05);</span></p>
-<p class="p1"><span class="s1">transition:transform .15s ease;</span></p>
-<p class="p1"><span class="s1">}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">.card:hover{</span></p>
-<p class="p1"><span class="s1">transform:scale(1.02);</span></p>
-<p class="p1"><span class="s1">}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">.name{</span></p>
-<p class="p1"><span class="s1">font-size:18px;</span></p>
-<p class="p1"><span class="s1">font-weight:600;</span></p>
-<p class="p1"><span class="s1">}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">.city{</span></p>
-<p class="p1"><span class="s1">color:#777;</span></p>
-<p class="p1"><span class="s1">margin-top:3px;</span></p>
-<p class="p1"><span class="s1">}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">.rating{</span></p>
-<p class="p1"><span class="s1">margin-top:8px;</span></p>
-<p class="p1"><span class="s1">color:#ff9f00;</span></p>
-<p class="p1"><span class="s1">font-weight:600;</span></p>
-<p class="p1"><span class="s1">}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">.loading{</span></p>
-<p class="p1"><span class="s1">text-align:center;</span></p>
-<p class="p1"><span class="s1">margin-top:40px;</span></p>
-<p class="p1"><span class="s1">color:#999;</span></p>
-<p class="p1"><span class="s1">}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">&lt;/style&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">&lt;/head&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">&lt;body&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">&lt;div class="header"&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">&lt;div class="title"&gt;</span></p>
-<p class="p1"><span class="s1">🌾 GlutenFree Finder</span></p>
-<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">&lt;div class="search"&gt;</span></p>
-<p class="p1"><span class="s1">&lt;input id="search" placeholder="Cerca città o ristorante..."&gt;</span></p>
-<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">&lt;div class="container" id="list"&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">&lt;div class="loading"&gt;</span></p>
-<p class="p1"><span class="s1">Caricamento ristoranti...</span></p>
-<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">&lt;script&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">const API="https://TUO-CLOUD-RUN-URL/api/restaurants"</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">let restaurants=[]</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">async function loadRestaurants(){</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">const res=await fetch(API)</span></p>
-<p class="p1"><span class="s1">restaurants=await res.json()</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">render(restaurants)</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">function render(data){</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">const list=document.getElementById("list")</span></p>
-<p class="p1"><span class="s1">list.innerHTML=""</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">data.forEach(r=&gt;{</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">const card=document.createElement("div")</span></p>
-<p class="p1"><span class="s1">card.className="card"</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">card.innerHTML=`</span></p>
-<p class="p1"><span class="s1">&lt;div class="name"&gt;${r.name}&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1">&lt;div class="city"&gt;📍 ${r.city}&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1">&lt;div class="rating"&gt;⭐ ${r.rating ?? "n.d."}&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1">`</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">list.appendChild(card)</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">})</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">document.getElementById("search").addEventListener("input",e=&gt;{</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">const q=e.target.value.toLowerCase()</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">const filtered=restaurants.filter(r=&gt;</span></p>
-<p class="p1"><span class="s1">r.name.toLowerCase().includes(q) ||</span></p>
-<p class="p1"><span class="s1">r.city.toLowerCase().includes(q)</span></p>
-<p class="p1"><span class="s1">)</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">render(filtered)</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">})</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">loadRestaurants()</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">const tg = window.Telegram.WebApp</span></p>
-<p class="p1"><span class="s1">tg.expand()</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">&lt;/script&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1">&lt;/body&gt;</span></p>
-<p class="p1"><span class="s1">&lt;/html&gt;</span></p>
+  <div class="header">
+    <div class="title">🌾 GlutenFree Finder</div>
+    <div class="search">
+      <input id="search" placeholder="Cerca città o ristorante..." />
+    </div>
+    <div class="hint">Mini App Telegram</div>
+  </div>
+
+  <div class="container" id="list">
+    <div class="loading">Caricamento ristoranti...</div>
+  </div>
+
+  <script>
+    const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+    if (tg) tg.expand();
+
+    const API = "https://INSERISCI-URL-CLOUD-RUN/api/restaurants";
+    let restaurants = [];
+
+    function render(data){
+      const list = document.getElementById("list");
+      list.innerHTML = "";
+
+      if (!data.length){
+        list.innerHTML = '<div class="empty">Nessun ristorante trovato.</div>';
+        return;
+      }
+
+      data.forEach(r => {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <div class="name">${r.name ?? "Nome non disponibile"}</div>
+          <div class="city">📍 ${r.city ?? "Città non disponibile"}</div>
+          <div class="rating">⭐ ${r.rating ?? "n.d."}</div>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    async function loadRestaurants(){
+      const list = document.getElementById("list");
+
+      if (API.includes("INSERISCI-URL-CLOUD-RUN")){
+        list.innerHTML = `
+          <div class="error">Mini App renderizzata correttamente ✅</div>
+          <div class="empty">Adesso inserisci l'URL reale di Cloud Run nella variabile <b>API</b>.</div>
+        `;
+        return;
+      }
+
+      try{
+        const res = await fetch(API);
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        restaurants = await res.json();
+        render(restaurants);
+      } catch(err){
+        list.innerHTML = `
+          <div class="error">Errore nel caricamento dati</div>
+          <div class="empty">${err.message}</div>
+        `;
+      }
+    }
+
+    document.getElementById("search").addEventListener("input", e => {
+      const q = e.target.value.toLowerCase().trim();
+      const filtered = restaurants.filter(r =>
+        String(r.name || "").toLowerCase().includes(q) ||
+        String(r.city || "").toLowerCase().includes(q)
+      );
+      render(filtered);
+    });
+
+    loadRestaurants();
+  </script>
 </body>
 </html>
