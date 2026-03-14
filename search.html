@@ -46,7 +46,7 @@
     .restaurant{background:#fff;border-radius:24px;overflow:hidden;border:1px solid #edf3f3;box-shadow:var(--shadow)}
     .hero{position:relative;height:170px;background:linear-gradient(135deg, #14b8a6, #06b6d4 50%, #22c55e)}
     .hero img{width:100%;height:100%;object-fit:cover;mix-blend-mode:soft-light;opacity:.86}
-    .badge{position:absolute;left:14px;top:14px;display:inline-flex;align-items:center;gap:8px;border-radius:999px;background:rgba(255,255,255,.92);color:#14532d;padding:8px 12px;font-size:12px;font-weight:900}
+    
     .body{padding:16px}
     .head{display:flex;justify-content:space-between;gap:12px;align-items:start}
     .name{margin:0;font-size:22px;font-weight:900;letter-spacing:-.03em;line-height:1.05}
@@ -101,6 +101,7 @@
         <button class="chip" data-cat="Bakery">Bakery</button>
         <button class="chip" data-cat="Bistrot">Bistrot</button>
         <button class="chip" data-cat="Caffè">Caffè</button>
+        <button class="chip" id="nearbyBtn">📍 Vicino a me</button>
       </div>
     </section>
 
@@ -140,6 +141,7 @@
   <script>
     const API_BASE = "https://glutenfree-bot-184042068933.europe-west1.run.app";
     const API_SEARCH = API_BASE + "/api/restaurants/search";
+    const API_NEARBY = API_BASE + "/api/restaurants/nearby";
 
     const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
     let premiumLink = "";
@@ -309,14 +311,50 @@
       box.innerHTML = `<div class="empty">Caricamento risultati…</div>`;
 
       try{
-        const res = await fetch(`${API_SEARCH}?q=${encodeURIComponent(q)}`);
+        const initData = tg && tg.initData ? tg.initData : "";
+        const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
+        const res = await fetch(`${API_SEARCH}?q=${encodeURIComponent(q)}&init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`);
         const data = await res.json();
+        if (data.paywall){
+          document.getElementById("premiumModal").classList.add("show");
+          return;
+        }
         const items = Array.isArray(data.items) ? data.items : (Array.isArray(data.restaurants) ? data.restaurants : []);
         const merged = items.length ? items.map((r, i) => ({...r, image: fallbackRestaurants[i % fallbackRestaurants.length].image, note: r.note || r.notes || fallbackRestaurants[i % fallbackRestaurants.length].note, types: r.types || fallbackRestaurants[i % fallbackRestaurants.length].types })) : fallbackRestaurants;
         render(applyFilters(merged));
       }catch(err){
         render(applyFilters(fallbackRestaurants));
       }
+    }
+
+    async function searchNearby(){
+      const box = document.getElementById("results");
+      box.innerHTML = `<div class="empty">Sto cercando i locali vicini a te…</div>`;
+      if (!navigator.geolocation){
+        showToast("Geolocalizzazione non disponibile");
+        render(applyFilters(fallbackRestaurants));
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        try{
+          const initData = tg && tg.initData ? tg.initData : "";
+          const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
+          const res = await fetch(`${API_NEARBY}?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&radius_km=25&init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`);
+          const data = await res.json();
+          if (data.paywall){
+            document.getElementById("premiumModal").classList.add("show");
+            return;
+          }
+          const items = Array.isArray(data.items) ? data.items : [];
+          const merged = items.length ? items.map((r, i) => ({...r, image: fallbackRestaurants[i % fallbackRestaurants.length].image, note: r.note || r.notes || fallbackRestaurants[i % fallbackRestaurants.length].note, types: r.types || fallbackRestaurants[i % fallbackRestaurants.length].types })) : fallbackRestaurants;
+          render(applyFilters(merged));
+        }catch(err){
+          render(applyFilters(fallbackRestaurants));
+        }
+      }, () => {
+        showToast("Permesso posizione negato");
+        render(applyFilters(fallbackRestaurants));
+      }, {enableHighAccuracy:true, timeout:12000});
     }
 
     document.getElementById("backBtn").addEventListener("click", () => window.location.href = "index.html");
@@ -341,6 +379,7 @@
     });
 
     document.getElementById("searchInput").value = initialQuery;
+    document.getElementById("nearbyBtn").addEventListener("click", searchNearby);
     document.getElementById("continuePremium").addEventListener("click", openTelegramPremium);
     document.getElementById("closePremiumModal").addEventListener("click", () => document.getElementById("premiumModal").classList.remove("show"));
     document.getElementById("closeDetailsModal").addEventListener("click", () => document.getElementById("detailsModal").classList.remove("show"));
@@ -349,7 +388,8 @@
     hardDisableZoom();
     loadPremiumLink();
     loadQuotaStatus();
-    search(initialQuery || "gluten free");
+    const mode = new URLSearchParams(window.location.search).get("mode") || "";
+    if (mode === "nearby") searchNearby(); else search(initialQuery || "gluten free");
 
     if (window.Telegram && window.Telegram.WebApp){
       Telegram.WebApp.ready();

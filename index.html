@@ -28,7 +28,7 @@
     }
     .app{width:100%;max-width:820px;margin:0 auto;min-height:100vh;position:relative;padding:calc(var(--safe-top) + 14px) 14px calc(var(--safe-bottom) + 94px)}
     .glass{background:rgba(255,255,255,.78);backdrop-filter: blur(20px);border:1px solid rgba(255,255,255,.7);box-shadow:var(--shadow)}
-    .topbar{position:sticky;top:0;z-index:20;padding-bottom:12px;background:linear-gradient(180deg, rgba(244,251,250,.92), rgba(244,251,250,.55), transparent);backdrop-filter: blur(8px)}
+    .topbar{position:sticky;top:0;z-index:20;padding-bottom:12px;background:linear-gradient(180deg, rgba(244,251,250,.92), rgba(244,251,250,.55), transparent);backdrop-filter: blur(8px);transition:transform .28s ease, opacity .28s ease}.topbar.hidden{transform:translateY(-120%);opacity:0;pointer-events:none}
     .topbar-card{border-radius:26px;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:12px}
     .brand{display:flex;align-items:center;gap:12px;min-width:0}
     .logo{width:54px;height:54px;border-radius:18px;overflow:hidden;display:grid;place-items:center;background:linear-gradient(135deg, #14b8a6 0%, #22c55e 100%);box-shadow:0 14px 24px rgba(20,184,166,.25);flex:0 0 auto}
@@ -87,7 +87,7 @@
     .restaurant:hover{transform:translateY(-4px)}
     .restaurant-hero{position:relative;height:154px;overflow:hidden;background:radial-gradient(circle at 18% 24%, rgba(255,255,255,.3), transparent 20%),linear-gradient(135deg, #14b8a6, #06b6d4 50%, #22c55e)}
     .restaurant-hero img{width:100%;height:100%;object-fit:cover;display:block;mix-blend-mode:soft-light;opacity:.85}
-    .restaurant-badge{position:absolute;left:14px;top:14px;display:inline-flex;align-items:center;gap:8px;border-radius:999px;background:rgba(255,255,255,.92);color:#14532d;padding:8px 12px;font-size:12px;font-weight:900;box-shadow:0 8px 16px rgba(0,0,0,.08)}
+    
     .restaurant-actions{position:absolute;right:12px;top:12px;display:flex;gap:8px}
     .circle-btn{width:38px;height:38px;border:none;border-radius:999px;background:rgba(255,255,255,.92);display:grid;place-items:center;cursor:pointer;box-shadow:0 10px 18px rgba(15,23,42,.08)}
     .restaurant-body{padding:16px}
@@ -101,6 +101,7 @@
     .restaurant-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px}
     .mini-metrics{display:flex;gap:14px;color:var(--muted);font-size:13px;font-weight:700}
     .cta{border:none;border-radius:16px;background:linear-gradient(135deg, var(--brand-dark), var(--brand));color:#fff;font-weight:900;padding:12px 15px;cursor:pointer;box-shadow:0 12px 18px rgba(20,184,166,.18)}
+    .partner-cta{margin-top:18px;background:#fff;border-radius:28px;padding:22px;border:1px solid #edf3f3;box-shadow:var(--shadow);display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}.partner-cta h3{margin:0;font-size:28px;letter-spacing:-.04em}.partner-cta p{margin:10px 0 0;color:#475569;line-height:1.5;max-width:540px}.partner-btn{border:none;border-radius:18px;padding:14px 18px;background:linear-gradient(135deg, var(--brand-dark), var(--brand));color:#fff;font-weight:900;cursor:pointer;box-shadow:0 12px 18px rgba(20,184,166,.18)}
     .premium{margin-top:18px;border-radius:28px;overflow:hidden;background:linear-gradient(135deg, rgba(15,118,110,.96), rgba(8,145,178,.95));color:#fff;padding:22px;position:relative;box-shadow:0 24px 44px rgba(8,145,178,.18)}
     .premium::after{content:"";position:absolute;right:-28px;top:-18px;width:180px;height:180px;border-radius:999px;background:radial-gradient(circle, rgba(255,255,255,.2), transparent 64%)}
     .premium h3{margin:0;font-size:30px;letter-spacing:-.04em;line-height:1}
@@ -258,13 +259,22 @@
       <div class="section-head">
         <div>
           <h2 class="section-title" data-i18n="resultsTitle">Ristoranti consigliati</h2>
-          <div class="section-sub" data-i18n="resultsSub">Card curate, gerarchia visiva chiara, CTA comprensibili. Finalmente qualcosa di vendibile.</div>
+          <div class="section-sub" data-i18n="resultsSub">Una selezione pensata per farti partire bene: locali interessanti, facili da capire, senza il solito caos da elenco freddo.</div>
         </div>
       </div>
 
       <div class="cards" id="results">
         <div class="skeleton"></div><div class="skeleton"></div>
       </div>
+    </section>
+
+
+    <section class="partner-cta">
+      <div>
+        <h3 data-i18n="partnerTitle">Sei un ristorante gluten free?</h3>
+        <p data-i18n="partnerText">Scrivimi per essere in elenco, raccontare il tuo locale e preparare una presenza più forte dentro Glutenfree bot.</p>
+      </div>
+      <button class="partner-btn" id="partnerBtn" data-i18n="partnerBtn">Scrivimi su Telegram</button>
     </section>
 
     <section class="premium" id="premiumSection">
@@ -304,8 +314,10 @@
     const SEARCH_PAGE = "search.html";
 
     const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+    const CONTACT_LINK = "https://t.me/glutenfreeitaliabot";
     let premiumLink = "";
     let userIsPremium = false;
+    let lastScrollY = 0;
 
     async function loadPremiumLink(){
       try{
@@ -338,6 +350,16 @@
       } else {
         window.open(premiumLink, "_blank");
       }
+    }
+
+    function setupTopbarHideOnScroll(){
+      const topbar = document.getElementById("topbar");
+      window.addEventListener("scroll", () => {
+        const y = window.scrollY;
+        if (y > lastScrollY && y > 40) topbar.classList.add("hidden");
+        else topbar.classList.remove("hidden");
+        lastScrollY = y;
+      }, {passive:true});
     }
 
     function hardDisableZoom(){
@@ -377,7 +399,7 @@
         refresh: "Aggiorna",
         catAll: "Tutti",
         resultsTitle: "Ristoranti consigliati",
-        resultsSub: "Card curate, gerarchia visiva chiara, CTA comprensibili. Finalmente qualcosa di vendibile.",
+        resultsSub: "Una selezione pensata per farti partire bene: locali interessanti, facili da capire, senza il solito caos da elenco freddo.",
         premiumTitle: "Passa a Premium",
         premiumText: "Ricerche illimitate, interfaccia avanzata, esperienza migliore. Il paywall va mostrato bene, non come una multa di condominio.",
         premiumPrice: "💎 299 Stars / mese",
@@ -395,7 +417,10 @@
         toastMenu: "Menu profilo in arrivo",
         toastNear: "Geolocalizzazione in arrivo",
         toastAdd: "Form per segnalazione locale in arrivo",
-        toastPremium: "Collega qui il checkout Telegram Stars",
+        toastPremium: "Apro il checkout Premium su Telegram",
+        partnerTitle: "Sei un ristorante gluten free?",
+        partnerText: "Scrivimi per essere in elenco, raccontare il tuo locale e preparare una presenza più forte dentro Glutenfree bot.",
+        partnerBtn: "Scrivimi su Telegram",
         toastOpenSearch: "Apro la pagina ricerca…"
       },
       en: {
@@ -439,7 +464,10 @@
         toastMenu: "Profile menu coming soon",
         toastNear: "Geolocation coming soon",
         toastAdd: "Add place form coming soon",
-        toastPremium: "Connect Telegram Stars checkout here",
+        toastPremium: "Opening Premium checkout on Telegram",
+        partnerTitle: "Are you a gluten free restaurant?",
+        partnerText: "Write to me to be listed, tell your story and build a stronger presence inside Glutenfree bot.",
+        partnerBtn: "Message me on Telegram",
         toastOpenSearch: "Opening search page…"
       }
     };
@@ -549,9 +577,12 @@
       }
     }
 
-    function openSearchPage(query = ""){
+    function openSearchPage(query = "", mode = ""){
       showToast(t("toastOpenSearch"));
-      const suffix = query ? `?q=${encodeURIComponent(query)}` : "";
+      const params = new URLSearchParams();
+      if (query) params.set("q", query);
+      if (mode) params.set("mode", mode);
+      const suffix = params.toString() ? `?${params.toString()}` : "";
       setTimeout(() => window.location.href = `${SEARCH_PAGE}${suffix}`, 180);
     }
 
@@ -568,7 +599,7 @@
 
     document.getElementById("favoritesBtn").addEventListener("click", () => showToast(t("toastFavorites")));
     document.getElementById("menuBtn").addEventListener("click", () => showToast(t("toastMenu")));
-    document.getElementById("nearMeCard").addEventListener("click", () => showToast(t("toastNear")));
+    document.getElementById("nearMeCard").addEventListener("click", () => openSearchPage("", "nearby"));
     document.getElementById("topRatedCard").addEventListener("click", () => {
       document.getElementById("resultsSection").scrollIntoView({ behavior: "smooth", block: "start" });
       showToast("Top rated");
@@ -582,6 +613,7 @@
     document.querySelectorAll("[data-query]").forEach(btn => btn.addEventListener("click", () => openSearchPage(btn.dataset.query)));
     document.getElementById("refreshBtn").addEventListener("click", renderRestaurants);
     document.getElementById("premiumBtn").addEventListener("click", () => document.getElementById("premiumModal").classList.add("show"));
+    document.getElementById("partnerBtn").addEventListener("click", () => { if (tg && tg.openTelegramLink) tg.openTelegramLink(CONTACT_LINK); else window.open(CONTACT_LINK, "_blank"); });
     document.getElementById("continuePremium").addEventListener("click", openTelegramPremium);
     document.getElementById("closeModal").addEventListener("click", () => document.getElementById("premiumModal").classList.remove("show"));
     document.getElementById("premiumModal").addEventListener("click", e => {
@@ -615,6 +647,7 @@
     applyTranslations();
     renderRestaurants();
     hardDisableZoom();
+    setupTopbarHideOnScroll();
     loadPremiumLink();
     loadQuotaStatus();
 
