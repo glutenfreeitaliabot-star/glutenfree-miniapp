@@ -68,7 +68,7 @@
     .modal h3{margin:0;font-size:28px;line-height:1.05;letter-spacing:-.04em}
     .modal p{color:#475569;line-height:1.5;margin:12px 0 0}
     .modal-actions{margin-top:18px;display:flex;gap:10px;flex-wrap:wrap}
-    .secondary{border:none;border-radius:16px;padding:13px 16px;background:#eff6ff;color:#1d4ed8;font-weight:900;cursor:pointer}
+    .secondary{border:none;border-radius:16px;padding:13px 16px;background:#eff6ff;color:#1d4ed8;font-weight:900;cursor:pointer}#detailsBody p{margin:10px 0;color:#475569;line-height:1.5}#detailsBody a{color:var(--brand-dark);font-weight:800;text-decoration:none}
 
     @media (max-width: 860px){.cards{grid-template-columns:1fr}}
     @media (max-width:560px){.search-bar{flex-wrap:wrap}.search-bar button{width:100%}.head{flex-direction:column}.score{min-width:0}}
@@ -142,6 +142,8 @@
     const API_BASE = "https://glutenfree-bot-184042068933.europe-west1.run.app";
     const API_SEARCH = API_BASE + "/api/restaurants/search";
     const API_NEARBY = API_BASE + "/api/restaurants/nearby";
+    const API_ME = API_BASE + "/api/me";
+    let meState = { user_id: 0, is_admin: false, is_premium: false, quota: null };
 
     const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
     let premiumLink = "";
@@ -163,9 +165,21 @@
         const res = await fetch(url);
         const data = await res.json();
         userIsPremium = !!data.is_premium;
+        meState.quota = data;
       }catch(e){
         userIsPremium = false;
       }
+    }
+
+    async function loadMe(){
+      try{
+        const initData = tg && tg.initData ? tg.initData : "";
+        const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
+        const res = await fetch(`${API_ME}?init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`);
+        const data = await res.json();
+        meState = data || meState;
+        userIsPremium = !!data.is_premium;
+      }catch(e){}
     }
 
     function openTelegramPremium(){
@@ -180,21 +194,42 @@
       }
     }
 
-    function requirePremiumForDetails(restaurant){
-      if (userIsPremium){
-        openDetailsModal(restaurant);
-      } else {
+    async function requirePremiumForDetails(restaurant){
+      if (!userIsPremium){
         document.getElementById("premiumModal").classList.add("show");
+        return;
+      }
+      const initData = tg && tg.initData ? tg.initData : "";
+      const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
+      try{
+        const res = await fetch(`${API_BASE}/api/restaurants/${restaurant.id}/details?init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`);
+        if (res.status === 403){
+          document.getElementById("premiumModal").classList.add("show");
+          return;
+        }
+        const data = await res.json();
+        const item = data.item || restaurant;
+        openDetailsModal(item);
+      }catch(err){
+        showToast("Errore nel caricamento dettagli");
       }
     }
 
     function openDetailsModal(restaurant){
+      const mapLink = restaurant.google_maps_url ? `<a href="${restaurant.google_maps_url}" target="_blank" rel="noopener">Apri Google Maps</a>` : `<span>Non disponibile</span>`;
+      const phone = restaurant.phone ? `<a href="tel:${restaurant.phone}">${escapeHtml(restaurant.phone)}</a>` : `<span>Non disponibile</span>`;
+      const website = restaurant.website ? `<a href="${restaurant.website}" target="_blank" rel="noopener">Visita sito</a>` : `<span>Non disponibile</span>`;
+      const address = restaurant.address ? escapeHtml(restaurant.address) : "Non disponibile";
       document.getElementById("detailsTitle").textContent = restaurant.name || "Dettagli";
       document.getElementById("detailsBody").innerHTML = `
         <p><strong>Città:</strong> ${escapeHtml(restaurant.city || "-")}</p>
+        <p><strong>Indirizzo:</strong> ${address}</p>
         <p><strong>Categoria:</strong> ${escapeHtml(restaurant.types || "-")}</p>
         <p><strong>Rating:</strong> ${formatRating(restaurant.rating)}</p>
-        <p><strong>Descrizione:</strong> ${escapeHtml(restaurant.note || "Scheda ristorante disponibile per utenti premium.")}</p>
+        <p><strong>Telefono:</strong> ${phone}</p>
+        <p><strong>Sito web:</strong> ${website}</p>
+        <p><strong>Google Maps:</strong> ${mapLink}</p>
+        <p><strong>Recapito:</strong> ${address}</p>
       `;
       document.getElementById("detailsModal").classList.add("show");
     }
@@ -388,6 +423,7 @@
     hardDisableZoom();
     loadPremiumLink();
     loadQuotaStatus();
+    loadMe();
     const mode = new URLSearchParams(window.location.search).get("mode") || "";
     if (mode === "nearby") searchNearby(); else search(initialQuery || "gluten free");
 

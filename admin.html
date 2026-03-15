@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Glutenfree bot — Admin</title>
+  <meta name="theme-color" content="#0f766e" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root{--bg:#f4fbfa;--surface:#fff;--text:#0f172a;--muted:#64748b;--brand:#14b8a6;--brand-dark:#0f766e;--shadow:0 20px 40px rgba(15,23,42,.08);--safe-top:env(safe-area-inset-top);--safe-bottom:env(safe-area-inset-bottom)}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent} html,body{margin:0;padding:0}
+    body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--text);background:radial-gradient(circle at 10% 10%, rgba(34,197,94,.16), transparent 22%),radial-gradient(circle at 90% 12%, rgba(6,182,212,.12), transparent 20%),linear-gradient(180deg,#f4fbfa,#f8fbff 38%,#f7fffd 100%);min-height:100vh}
+    .app{max-width:920px;margin:0 auto;padding:calc(var(--safe-top) + 14px) 14px calc(var(--safe-bottom) + 24px)}
+    .glass{background:rgba(255,255,255,.82);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.7);box-shadow:var(--shadow)}
+    .top{border-radius:26px;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px}.title{font-size:30px;font-weight:900;letter-spacing:-.04em}.sub{color:var(--muted);margin-top:4px}.back{border:none;background:#fff;border-radius:999px;width:44px;height:44px;cursor:pointer;box-shadow:0 10px 18px rgba(15,23,42,.06);color:var(--brand-dark);font-size:18px}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}.card{background:#fff;border-radius:24px;padding:18px;border:1px solid #edf3f3;box-shadow:var(--shadow)}.metric{font-size:34px;font-weight:900;letter-spacing:-.04em}.label{margin-top:6px;color:var(--muted);font-weight:700}
+    .section{margin-top:18px}.section h2{margin:0 0 12px;font-size:24px;font-weight:900;letter-spacing:-.03em}.table{background:#fff;border-radius:24px;padding:10px;border:1px solid #edf3f3;box-shadow:var(--shadow);overflow:auto}.row{display:grid;grid-template-columns:1.1fr .9fr .9fr .9fr;gap:10px;padding:12px 10px;border-bottom:1px solid #eff3f3;align-items:center}.row:last-child{border-bottom:none}.head{font-size:12px;color:var(--muted);font-weight:900;text-transform:uppercase;letter-spacing:.08em}.pill{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:8px 12px;background:#effaf8;color:var(--brand-dark);font-weight:900}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.btn{border:none;border-radius:16px;padding:13px 16px;background:linear-gradient(135deg,var(--brand-dark),var(--brand));color:#fff;font-weight:900;cursor:pointer}.btn.secondary{background:#eff6ff;color:#1d4ed8}.empty{padding:22px;color:var(--muted)} .small{font-size:13px;color:var(--muted)} .mono{font-family:ui-monospace,monospace;font-size:12px;word-break:break-all}
+    @media (max-width:860px){.stats{grid-template-columns:repeat(2,1fr)}.row{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="top glass">
+      <div><div class="title">Admin • Glutenfree bot</div><div class="sub">Pannello controllo riservato all’admin Telegram configurato nel backend.</div></div>
+      <button class="back" id="backBtn">←</button>
+    </div>
+    <div class="actions"><button class="btn" id="refreshBtn">Aggiorna dashboard</button><button class="btn secondary" id="testPremiumBtn">Attiva Premium per me</button><span class="small" id="adminInfo"></span></div>
+    <div class="stats">
+      <div class="card"><div class="metric" id="mRestaurants">—</div><div class="label">Ristoranti</div></div>
+      <div class="card"><div class="metric" id="mPremium">—</div><div class="label">Premium attivi</div></div>
+      <div class="card"><div class="metric" id="mUsers">—</div><div class="label">Utenti con ricerche</div></div>
+      <div class="card"><div class="metric" id="mToday">—</div><div class="label">Ricerche oggi</div></div>
+    </div>
+    <section class="section"><h2>Utenti Premium</h2><div class="table" id="premiumTable"></div></section>
+    <section class="section"><h2>Ricerche per giorno</h2><div class="table" id="searchesByDay"></div></section>
+    <section class="section"><h2>Eventi recenti</h2><div class="table" id="eventsTable"></div></section>
+  </div>
+<script>
+const tg=(window.Telegram&&window.Telegram.WebApp)?window.Telegram.WebApp:null;const API_BASE="https://glutenfree-bot-184042068933.europe-west1.run.app";function q(){const initData=tg&&tg.initData?tg.initData:"";const userId=tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user?tg.initDataUnsafe.user.id:"";return `init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`}
+function renderSimpleTable(elId, headers, rows){const el=document.getElementById(elId); if(!rows||!rows.length){el.innerHTML='<div class="empty">Nessun dato disponibile.</div>'; return;} const head='<div class="row head">'+headers.map(h=>`<div>${h}</div>`).join('')+'</div>'; const body=rows.map(r=>'<div class="row">'+r.map(v=>`<div>${v}</div>`).join('')+'</div>').join(''); el.innerHTML=head+body;}
+async function load(){const res=await fetch(`${API_BASE}/api/admin/dashboard?${q()}`); if(res.status===403){document.body.innerHTML='<div class="app"><div class="card"><h2>Accesso negato</h2><p>Questo pannello è accessibile solo all’admin configurato con ADMIN_TELEGRAM_ID.</p></div></div>'; return;} const data=await res.json(); const d=data.dashboard; document.getElementById('mRestaurants').textContent=d.restaurants_total; document.getElementById('mPremium').textContent=d.premium_active; document.getElementById('mUsers').textContent=d.unique_search_users; document.getElementById('mToday').textContent=d.searches_today; document.getElementById('adminInfo').textContent=`Telegram ID: ${tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user?tg.initDataUnsafe.user.id:'n.d.'}`; renderSimpleTable('premiumTable',['User ID','Status','Starts','Expires'], (d.premium_rows||[]).map(r=>[r.user_id, r.status, shortDate(r.starts_at), shortDate(r.expires_at)])); renderSimpleTable('searchesByDay',['Giorno','Ricerche'], (d.searches_by_day||[]).map(r=>[r.day, r.searches])); renderSimpleTable('eventsTable',['User','Evento','Valore','Quando'], (d.recent_events||[]).map(r=>[r.user_id||0, r.event_type, `<span class="mono">${escapeHtml(r.event_value||'')}</span>`, shortDate(r.created_at)])); }
+function shortDate(v){if(!v)return '-'; try{return new Date(v).toLocaleString('it-IT')}catch(e){return v}}
+function escapeHtml(str){return String(str).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')}
+document.getElementById('backBtn').addEventListener('click',()=>window.location.href='index.html');document.getElementById('refreshBtn').addEventListener('click',load);document.getElementById('testPremiumBtn').addEventListener('click',async()=>{const res=await fetch(`${API_BASE}/api/admin/test-premium?${q()}`,{method:'POST'}); if(res.ok){alert('Premium attivato per il tuo utente admin.'); load();} else {alert('Accesso negato.')} }); if(tg){tg.ready(); tg.expand(); tg.setHeaderColor('#f4fbfa'); tg.setBackgroundColor('#f4fbfa');} load();
+</script>
+</body>
+</html>

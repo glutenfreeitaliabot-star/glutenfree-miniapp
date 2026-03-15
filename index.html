@@ -109,9 +109,9 @@
     .premium-row{margin-top:18px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
     .price-tag{display:inline-flex;align-items:center;gap:10px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.14);padding:10px 14px;border-radius:999px;font-weight:900}
     .premium-btn{border:none;border-radius:18px;padding:14px 18px;background:#fff;color:var(--brand-dark);font-weight:900;cursor:pointer;box-shadow:0 12px 18px rgba(0,0,0,.14)}
-    .stable-bottom{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--safe-bottom) + 10px);width:min(792px, calc(100% - 20px));z-index:22;pointer-events:none}
-    .bottom-nav{pointer-events:auto;background:rgba(255,255,255,.86);backdrop-filter: blur(18px);border:1px solid rgba(255,255,255,.9);box-shadow:0 20px 30px rgba(15,23,42,.08);border-radius:24px;padding:10px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-    .nav-btn{border:none;background:transparent;border-radius:18px;padding:12px 10px;color:var(--muted);display:grid;place-items:center;gap:6px;font-size:12px;font-weight:800;cursor:pointer}
+    .stable-bottom{position:fixed;left:50%;transform:translateX(-50%);bottom:max(10px, calc(var(--safe-bottom) + 8px));width:min(760px, calc(100% - 18px));z-index:25;pointer-events:none}
+    .bottom-nav{pointer-events:auto;background:rgba(255,255,255,.92);backdrop-filter: blur(22px);border:1px solid rgba(255,255,255,.98);box-shadow:0 22px 40px rgba(15,23,42,.12);border-radius:26px;padding:10px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+    .nav-btn{border:none;background:transparent;border-radius:18px;padding:12px 10px;min-height:64px;color:var(--muted);display:grid;place-items:center;gap:6px;font-size:12px;font-weight:800;cursor:pointer}
     .nav-btn span:first-child{font-size:18px}
     .nav-btn.active{background:#f0fdfb;color:var(--brand-dark)}
     .skeleton{min-height:280px;border-radius:24px;background:linear-gradient(90deg,#edf6f4 25%,#f8fbfb 50%,#edf6f4 75%);background-size:200% 100%;animation:shimmer 1.2s infinite linear}
@@ -124,7 +124,7 @@
     .modal p{color:#475569;line-height:1.5;margin:12px 0 0}
     .modal-actions{margin-top:18px;display:flex;gap:10px;flex-wrap:wrap}
     .secondary{border:none;border-radius:16px;padding:13px 16px;background:#eff6ff;color:#1d4ed8;font-weight:900;cursor:pointer}
-    .toast{position:fixed;left:50%;transform:translateX(-50%) translateY(20px);bottom:84px;background:#0f172a;color:#fff;padding:12px 14px;border-radius:16px;opacity:0;pointer-events:none;transition:all .2s ease;z-index:60;font-weight:700}
+    .toast{position:fixed;left:50%;transform:translateX(-50%) translateY(20px);bottom:84px;background:#0f172a;color:#fff;padding:12px 14px;border-radius:16px;opacity:0;pointer-events:none;transition:all .2s ease;z-index:60;font-weight:700}.profile-sheet{width:min(520px,100%);background:#fff;border-radius:28px;padding:22px;box-shadow:0 30px 56px rgba(15,23,42,.18)}.profile-grid{display:grid;gap:12px;margin-top:16px}.profile-item{background:#f8fafc;border:1px solid #edf2f7;border-radius:18px;padding:14px}.profile-label{font-size:12px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.08em}.profile-value{margin-top:6px;font-size:16px;font-weight:800;color:var(--text)}.profile-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.profile-btn{border:none;border-radius:16px;padding:13px 16px;background:#eff6ff;color:#1d4ed8;font-weight:900;cursor:pointer}.profile-btn.primary{background:linear-gradient(135deg, var(--brand-dark), var(--brand));color:#fff}.admin-lock{font-size:12px;color:var(--muted);margin-top:6px}
     .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
     @media (max-width: 860px){.hero-grid,.quick-grid,.cards{grid-template-columns:1fr}.hero-art{min-height:220px}.phone{width:220px;height:274px}.brand-title{font-size:22px}}
     @media (max-width: 560px){.app{padding-left:12px;padding-right:12px}.topbar-card,.hero-copy,.restaurant-body,.premium{padding-left:14px;padding-right:14px}.search-bar{flex-wrap:wrap}.search-submit{width:100%}.restaurant-top{flex-direction:column}.score{min-width:0}}
@@ -132,7 +132,7 @@
 </head>
 <body>
   <div class="app">
-    <div class="topbar">
+    <div class="topbar" id="topbar">
       <div class="topbar-card glass">
         <div class="brand">
           <div class="logo" aria-hidden="true">
@@ -241,7 +241,7 @@
       <div class="section-head">
         <div>
           <h2 class="section-title" data-i18n="exploreTitle">Esplora</h2>
-          <div class="section-sub" data-i18n="exploreSub">Categorie e risultati più coerenti, più ordinati, più app e meno tabellina del caos.</div>
+          <div class="section-sub" data-i18n="exploreSub"></div>
         </div>
         <button class="ghost-btn" id="refreshBtn" data-i18n="refresh">Aggiorna</button>
       </div>
@@ -259,7 +259,7 @@
       <div class="section-head">
         <div>
           <h2 class="section-title" data-i18n="resultsTitle">Ristoranti consigliati</h2>
-          <div class="section-sub" data-i18n="resultsSub">Una selezione pensata per farti partire bene: locali interessanti, facili da capire, senza il solito caos da elenco freddo.</div>
+          <div class="section-sub" data-i18n="resultsSub">Scopri alcuni locali interessanti, scelti per iniziare bene la tua ricerca dentro Glutenfree bot.</div>
         </div>
       </div>
 
@@ -307,14 +307,36 @@
     </div>
   </div>
 
+  
+  <div class="modal-backdrop" id="profileModal">
+    <div class="profile-sheet">
+      <h3 style="margin:0;font-size:28px;line-height:1.05;letter-spacing:-.04em">Menu profilo</h3>
+      <p style="color:#475569;line-height:1.5;margin:12px 0 0">Stato account, premium, ricerche e accesso amministrazione.</p>
+      <div class="profile-grid">
+        <div class="profile-item"><div class="profile-label">Profilo</div><div class="profile-value" id="profileName">—</div></div>
+        <div class="profile-item"><div class="profile-label">Telegram ID</div><div class="profile-value" id="profileId">—</div><div class="admin-lock">Ti serve per blindare admin e premium test nel backend.</div></div>
+        <div class="profile-item"><div class="profile-label">Premium</div><div class="profile-value" id="profilePremium">—</div></div>
+        <div class="profile-item"><div class="profile-label">Ricerche rimaste oggi</div><div class="profile-value" id="profileQuota">—</div></div>
+      </div>
+      <div class="profile-actions">
+        <button class="profile-btn primary" id="profilePremiumBtn">Apri Premium</button>
+        <button class="profile-btn" id="profileAdminBtn" style="display:none">Apri pannello admin</button>
+        <button class="profile-btn" id="closeProfileBtn">Chiudi</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <script>
     const API_BASE = "https://glutenfree-bot-184042068933.europe-west1.run.app";
     const SEARCH_PAGE = "search.html";
+    const ADMIN_PAGE = "admin.html";
+    let contactLink = "https://t.me/glutenfreeitaliabot";
+    let meState = { user_id: 0, first_name: "", username: "", is_admin: false, is_premium: false, quota: null };
 
     const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
-    const CONTACT_LINK = "https://t.me/glutenfreeitaliabot";
+    const contactLink = "https://t.me/glutenfreeitaliabot";
     let premiumLink = "";
     let userIsPremium = false;
     let lastScrollY = 0;
@@ -335,9 +357,33 @@
         const res = await fetch(url);
         const data = await res.json();
         userIsPremium = !!data.is_premium;
+        if (meState) meState.quota = data;
       }catch(e){
         userIsPremium = false;
       }
+    }
+
+    async function loadMe(){
+      try{
+        const initData = tg && tg.initData ? tg.initData : "";
+        const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
+        const res = await fetch(`${API_BASE}/api/me?init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`);
+        const data = await res.json();
+        meState = data || meState;
+        contactLink = data.contact_link || contactLink;
+        userIsPremium = !!data.is_premium;
+        fillProfileSheet();
+      }catch(e){}
+    }
+
+    function fillProfileSheet(){
+      document.getElementById("profileName").textContent = meState.first_name || meState.username || "Utente Telegram";
+      document.getElementById("profileId").textContent = meState.user_id || "non disponibile";
+      document.getElementById("profilePremium").textContent = meState.is_premium ? "Attivo" : "Non attivo";
+      const quota = meState.quota || {};
+      const remaining = quota.is_premium ? "Illimitate" : `${quota.remaining_today ?? '—'} / ${quota.free_daily_limit ?? '—'}`;
+      document.getElementById("profileQuota").textContent = remaining;
+      document.getElementById("profileAdminBtn").style.display = meState.is_admin ? "inline-flex" : "none";
     }
 
     function openTelegramPremium(){
@@ -395,11 +441,11 @@
         quickAdd: "Aggiungi locale",
         quickAddDesc: "Segnala nuovi posti con un flusso più professionale.",
         exploreTitle: "Esplora",
-        exploreSub: "Categorie e risultati più coerenti, più ordinati, più app e meno tabellina del caos.",
+        exploreSub: "",
         refresh: "Aggiorna",
         catAll: "Tutti",
         resultsTitle: "Ristoranti consigliati",
-        resultsSub: "Una selezione pensata per farti partire bene: locali interessanti, facili da capire, senza il solito caos da elenco freddo.",
+        resultsSub: "Scopri alcuni locali interessanti, scelti per iniziare bene la tua ricerca dentro Glutenfree bot.",
         premiumTitle: "Passa a Premium",
         premiumText: "Ricerche illimitate, interfaccia avanzata, esperienza migliore. Il paywall va mostrato bene, non come una multa di condominio.",
         premiumPrice: "💎 299 Stars / mese",
@@ -442,7 +488,7 @@
         quickAdd: "Add a place",
         quickAddDesc: "Suggest new places with a more professional flow.",
         exploreTitle: "Explore",
-        exploreSub: "Cleaner categories and results, more app-like and less spreadsheet chaos.",
+        exploreSub: "",
         refresh: "Refresh",
         catAll: "All",
         resultsTitle: "Recommended restaurants",
@@ -598,7 +644,7 @@
     });
 
     document.getElementById("favoritesBtn").addEventListener("click", () => showToast(t("toastFavorites")));
-    document.getElementById("menuBtn").addEventListener("click", () => showToast(t("toastMenu")));
+    document.getElementById("menuBtn").addEventListener("click", () => { fillProfileSheet(); document.getElementById("profileModal").classList.add("show"); });
     document.getElementById("nearMeCard").addEventListener("click", () => openSearchPage("", "nearby"));
     document.getElementById("topRatedCard").addEventListener("click", () => {
       document.getElementById("resultsSection").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -613,12 +659,16 @@
     document.querySelectorAll("[data-query]").forEach(btn => btn.addEventListener("click", () => openSearchPage(btn.dataset.query)));
     document.getElementById("refreshBtn").addEventListener("click", renderRestaurants);
     document.getElementById("premiumBtn").addEventListener("click", () => document.getElementById("premiumModal").classList.add("show"));
-    document.getElementById("partnerBtn").addEventListener("click", () => { if (tg && tg.openTelegramLink) tg.openTelegramLink(CONTACT_LINK); else window.open(CONTACT_LINK, "_blank"); });
+    document.getElementById("partnerBtn").addEventListener("click", () => { if (tg && tg.openTelegramLink) tg.openTelegramLink(contactLink); else window.open(contactLink, "_blank"); });
     document.getElementById("continuePremium").addEventListener("click", openTelegramPremium);
     document.getElementById("closeModal").addEventListener("click", () => document.getElementById("premiumModal").classList.remove("show"));
     document.getElementById("premiumModal").addEventListener("click", e => {
       if (e.target.id === "premiumModal") document.getElementById("premiumModal").classList.remove("show");
     });
+    document.getElementById("profilePremiumBtn").addEventListener("click", openTelegramPremium);
+    document.getElementById("closeProfileBtn").addEventListener("click", () => document.getElementById("profileModal").classList.remove("show"));
+    document.getElementById("profileModal").addEventListener("click", e => { if (e.target.id === "profileModal") document.getElementById("profileModal").classList.remove("show"); });
+    document.getElementById("profileAdminBtn").addEventListener("click", () => window.location.href = ADMIN_PAGE);
 
     document.querySelectorAll("#categoryToolbar .chip").forEach(btn => {
       btn.addEventListener("click", () => {
@@ -650,6 +700,7 @@
     setupTopbarHideOnScroll();
     loadPremiumLink();
     loadQuotaStatus();
+    loadMe();
 
     if (window.Telegram && window.Telegram.WebApp){
       Telegram.WebApp.ready();
