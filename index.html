@@ -329,339 +329,432 @@
   <div class="toast" id="toast"></div>
 
   <script>
-    const API_BASE = "https://glutenfree-bot-184042068933.europe-west1.run.app";
-    const SEARCH_PAGE = "search.html";
-    const ADMIN_PAGE = "admin.html";
-    let contactLink = "https://t.me/glutenfreeitaliabot";
-    let meState = { user_id: 0, first_name: "", username: "", is_admin: false, is_premium: false, quota: null };
 
-    const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
-    let premiumLink = "";
-    let userIsPremium = false;
-    let lastScrollY = 0;
+const API_BASE = "https://glutenfree-bot-184042068933.europe-west1.run.app";
+const SEARCH_PAGE = "search.html";
+const ADMIN_PAGE = "admin.html";
 
-    async function loadPremiumLink(){
-      try{
-        const res = await fetch(`${API_BASE}/api/premium-link`);
-        const data = await res.json();
-        premiumLink = data.premium_bot_link || "";
-      }catch(e){}
+const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+
+let contactLink = "https://t.me/glutenfreeitaliabot";
+let meState = { user_id: 0, first_name: "", username: "", is_admin: false, is_premium: false, quota: null };
+let premiumLink = "";
+let userIsPremium = false;
+let currentLang = localStorage.getItem("gf_lang") || "it";
+let currentCategory = "all";
+let lastScrollY = 0;
+
+const i18n = {
+  it: {
+    eyebrow: "Telegram mini app",
+    brandSub: "Ricerca ristoranti senza glutine con un’interfaccia finalmente solida, pulita e credibile.",
+    heroKicker: "🌾 Glutenfree bot premium look",
+    heroTitle: "Trova locali gluten free con stile da vera app.",
+    heroText: "Ricerca, categorie, risultati curati e interfaccia stabile sullo schermo. Meno pagina web raffazzonata, più prodotto credibile.",
+    searchBtn: "Cerca",
+    phoneSub: "Top picks della community",
+    actionsTitle: "Azioni rapide",
+    actionsSub: "Una home da app vera: parti da qui, non da una lista buttata in faccia.",
+    quickSearch: "Cerca ristoranti",
+    quickSearchDesc: "Ricerca pulita, veloce, senza casino visivo.",
+    quickNear: "Vicino a me",
+    quickNearDesc: "Pronto per geolocalizzazione e risultati più utili.",
+    quickTop: "Top rated",
+    quickTopDesc: "Scopri i locali più apprezzati dalla community.",
+    quickAdd: "Aggiungi locale",
+    quickAddDesc: "Segnala nuovi posti con un flusso più professionale.",
+    exploreTitle: "Esplora",
+    exploreSub: "",
+    refresh: "Aggiorna",
+    catAll: "Tutti",
+    resultsTitle: "Ristoranti consigliati",
+    resultsSub: "Scopri alcuni locali interessanti, scelti per iniziare bene la tua ricerca dentro Glutenfree bot.",
+    premiumTitle: "Passa a Premium",
+    premiumText: "Ricerche illimitate, interfaccia avanzata, esperienza migliore. Il paywall va mostrato bene, non come una multa di condominio.",
+    premiumPrice: "💎 299 Stars / mese",
+    premiumBtn: "Sblocca Premium",
+    navHome: "Home",
+    navSearch: "Cerca",
+    navExplore: "Esplora",
+    navPremium: "Premium",
+    modalTitle: "Premium mensile",
+    modalText: "Qui puoi collegare il checkout Telegram Stars in modo pulito, elegante e coerente col brand.",
+    continuePremium: "Continua con Telegram",
+    close: "Chiudi",
+    searchPlaceholder: "Cerca città, zona o ristorante...",
+    toastFavorites: "Preferiti in arrivo",
+    toastMenu: "Menu profilo aperto",
+    toastNear: "Apro la ricerca vicino a te…",
+    toastAdd: "Form per segnalazione locale in arrivo",
+    toastPremium: "Apro il checkout Premium su Telegram",
+    partnerTitle: "Sei un ristorante gluten free?",
+    partnerText: "Scrivimi per essere in elenco, raccontare il tuo locale e preparare una presenza più forte dentro Glutenfree bot.",
+    partnerBtn: "Scrivimi su Telegram",
+    toastOpenSearch: "Apro la pagina ricerca…",
+    profileTitle: "Menu profilo",
+    profileText: "Stato account, premium, ricerche e accesso amministrazione.",
+    profileNameLabel: "Profilo",
+    profileIdLabel: "Telegram ID",
+    profileIdHint: "Ti serve per blindare admin e premium test nel backend.",
+    profilePremiumLabel: "Premium",
+    profileQuotaLabel: "Ricerche rimaste oggi",
+    profileOpenPremium: "Apri Premium",
+    profileAdmin: "Apri pannello admin",
+    profileClose: "Chiudi",
+    premiumActive: "Attivo",
+    premiumInactive: "Non attivo",
+    unlimited: "Illimitate",
+    unavailable: "non disponibile"
+  },
+  en: {
+    eyebrow: "Telegram mini app",
+    brandSub: "Gluten free restaurant search with an interface that finally feels solid, clean and credible.",
+    heroKicker: "🌾 Glutenfree bot premium look",
+    heroTitle: "Find gluten free places with real app quality.",
+    heroText: "Search, categories, curated results and a screen-stable interface. Less messy webpage, more believable product.",
+    searchBtn: "Search",
+    phoneSub: "Community top picks",
+    actionsTitle: "Quick actions",
+    actionsSub: "A real app homepage: start here, not with a list thrown in your face.",
+    quickSearch: "Find restaurants",
+    quickSearchDesc: "Fast, clean search without visual chaos.",
+    quickNear: "Near me",
+    quickNearDesc: "Ready for geolocation and better local results.",
+    quickTop: "Top rated",
+    quickTopDesc: "Discover the most loved places from the community.",
+    quickAdd: "Add a place",
+    quickAddDesc: "Suggest new places with a more professional flow.",
+    exploreTitle: "Explore",
+    exploreSub: "",
+    refresh: "Refresh",
+    catAll: "All",
+    resultsTitle: "Recommended restaurants",
+    resultsSub: "Discover a few interesting places selected to start your search well inside Glutenfree bot.",
+    premiumTitle: "Go Premium",
+    premiumText: "Unlimited searches, upgraded interface, better experience. The paywall should look premium, not like an electricity bill.",
+    premiumPrice: "💎 299 Stars / month",
+    premiumBtn: "Unlock Premium",
+    navHome: "Home",
+    navSearch: "Search",
+    navExplore: "Explore",
+    navPremium: "Premium",
+    modalTitle: "Monthly Premium",
+    modalText: "Connect Telegram Stars checkout here in a clean, elegant, on-brand way.",
+    continuePremium: "Continue with Telegram",
+    close: "Close",
+    searchPlaceholder: "Search city, area or restaurant...",
+    toastFavorites: "Favorites coming soon",
+    toastMenu: "Profile menu opened",
+    toastNear: "Opening nearby search…",
+    toastAdd: "Add place form coming soon",
+    toastPremium: "Opening Premium checkout on Telegram",
+    partnerTitle: "Are you a gluten free restaurant?",
+    partnerText: "Write to me to be listed, tell your story and build a stronger presence inside Glutenfree bot.",
+    partnerBtn: "Message me on Telegram",
+    toastOpenSearch: "Opening search page…",
+    profileTitle: "Profile menu",
+    profileText: "Account status, premium, searches and admin access.",
+    profileNameLabel: "Profile",
+    profileIdLabel: "Telegram ID",
+    profileIdHint: "You need it to lock admin and premium test in the backend.",
+    profilePremiumLabel: "Premium",
+    profileQuotaLabel: "Searches left today",
+    profileOpenPremium: "Open Premium",
+    profileAdmin: "Open admin panel",
+    profileClose: "Close",
+    premiumActive: "Active",
+    premiumInactive: "Not active",
+    unlimited: "Unlimited",
+    unavailable: "not available"
+  }
+};
+
+const fallbackRestaurants = [
+  { name: "Rose Bakery", city: "Milano", rating: 4.8, types: "Bakery", note: "Ambiente fresco, brunch curato e opzioni gluten free ben comunicate.", image: foodIllustration("#14b8a6", "#06b6d4", "bakery") },
+  { name: "Pizza Nuvola", city: "Bologna", rating: 4.9, types: "Pizzeria", note: "Impasti dedicati, card molto più credibile e tono da vero brand.", image: foodIllustration("#22c55e", "#14b8a6", "pizza") },
+  { name: "Verde e Grano", city: "Roma", rating: 4.7, types: "Bistrot", note: "Piatti stagionali, menu leggibile e look professionale.", image: foodIllustration("#0ea5e9", "#14b8a6", "bowl") },
+  { name: "Caffè Quercia", city: "Torino", rating: 4.6, types: "Caffè", note: "Colazioni semplici, chiare e con promessa gluten free più affidabile.", image: foodIllustration("#14b8a6", "#84cc16", "coffee") }
+];
+
+function byId(id){ return document.getElementById(id); }
+function qsa(selector){ return Array.from(document.querySelectorAll(selector)); }
+function t(key){ return (i18n[currentLang] && i18n[currentLang][key]) || key; }
+
+function foodIllustration(c1, c2, type){
+  const icon = {
+    bakery: `<rect x="120" y="86" width="120" height="70" rx="32" fill="rgba(255,255,255,.95)"/><circle cx="148" cy="108" r="6" fill="#d97706"/><circle cx="176" cy="102" r="8" fill="#d97706"/><circle cx="205" cy="108" r="7" fill="#d97706"/>`,
+    pizza: `<circle cx="180" cy="112" r="54" fill="#fde68a"/><path d="M180 58L226 144H134L180 58Z" fill="#f97316"/><circle cx="180" cy="106" r="6" fill="#b91c1c"/><circle cx="166" cy="120" r="6" fill="#b91c1c"/><circle cx="194" cy="120" r="6" fill="#b91c1c"/>`,
+    bowl: `<circle cx="180" cy="118" r="52" fill="rgba(255,255,255,.95)"/><path d="M130 118c0 30 22 54 50 54s50-24 50-54" fill="#10b981"/><circle cx="161" cy="104" r="10" fill="#f59e0b"/><circle cx="199" cy="102" r="11" fill="#22c55e"/><circle cx="180" cy="90" r="9" fill="#ef4444"/>`,
+    coffee: `<rect x="140" y="82" width="84" height="74" rx="18" fill="rgba(255,255,255,.95)"/><path d="M224 96h12c12 0 20 8 20 20s-8 20-20 20h-12" stroke="rgba(255,255,255,.95)" stroke-width="10" fill="none"/><path d="M164 70c-10 12-2 16-2 24" stroke="rgba(255,255,255,.92)" stroke-width="7" stroke-linecap="round"/><path d="M192 70c-10 12-2 16-2 24" stroke="rgba(255,255,255,.92)" stroke-width="7" stroke-linecap="round"/>`
+  }[type];
+  return `data:image/svg+xml;utf8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 180">
+      <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop offset="0%" stop-color="${c1}"/><stop offset="100%" stop-color="${c2}"/></linearGradient></defs>
+      <rect width="360" height="180" fill="url(#g)"/>
+      <circle cx="60" cy="34" r="22" fill="rgba(255,255,255,.14)"/>
+      <circle cx="300" cy="34" r="36" fill="rgba(255,255,255,.12)"/>
+      <circle cx="290" cy="150" r="28" fill="rgba(255,255,255,.14)"/>
+      ${icon}
+    </svg>
+  `)}`;
+}
+
+function escapeHtml(str){
+  return String(str).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
+
+function showToast(message){
+  const toast = byId("toast");
+  if (!toast) return;
+  toast.textContent = message;
+  toast.classList.add("show");
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => toast.classList.remove("show"), 1800);
+}
+
+function formatRating(value){
+  if (value === null || value === undefined || value === "") return "—";
+  return Number(value).toFixed(1);
+}
+
+function applyTranslations(){
+  qsa("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
+  if (byId("searchInput")) byId("searchInput").placeholder = t("searchPlaceholder");
+  qsa(".lang-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.lang === currentLang));
+  const profileHint = document.querySelector(".admin-lock");
+  if (profileHint) profileHint.textContent = t("profileIdHint");
+  const profileTitle = document.querySelector("#profileModal h3");
+  if (profileTitle) profileTitle.textContent = t("profileTitle");
+  const profileText = document.querySelector("#profileModal p");
+  if (profileText) profileText.textContent = t("profileText");
+  const profileLabels = qsa(".profile-label");
+  if (profileLabels[0]) profileLabels[0].textContent = t("profileNameLabel");
+  if (profileLabels[1]) profileLabels[1].textContent = t("profileIdLabel");
+  if (profileLabels[2]) profileLabels[2].textContent = t("profilePremiumLabel");
+  if (profileLabels[3]) profileLabels[3].textContent = t("profileQuotaLabel");
+  if (byId("profilePremiumBtn")) byId("profilePremiumBtn").textContent = t("profileOpenPremium");
+  if (byId("profileAdminBtn")) byId("profileAdminBtn").textContent = t("profileAdmin");
+  if (byId("closeProfileBtn")) byId("closeProfileBtn").textContent = t("profileClose");
+  localStorage.setItem("gf_lang", currentLang);
+  fillProfileSheet();
+}
+
+function fillProfileSheet(){
+  if (byId("profileName")) byId("profileName").textContent = meState.first_name || meState.username || "Utente Telegram";
+  if (byId("profileId")) byId("profileId").textContent = meState.user_id || t("unavailable");
+  if (byId("profilePremium")) byId("profilePremium").textContent = meState.is_premium ? t("premiumActive") : t("premiumInactive");
+  const quota = meState.quota || {};
+  const remaining = quota.is_premium ? t("unlimited") : `${quota.remaining_today ?? "—"} / ${quota.free_daily_limit ?? "—"}`;
+  if (byId("profileQuota")) byId("profileQuota").textContent = remaining;
+  if (byId("profileAdminBtn")) byId("profileAdminBtn").style.display = "inline-flex";
+}
+
+async function loadPremiumLink(){
+  try{
+    const res = await fetch(`${API_BASE}/api/premium-link`);
+    const data = await res.json();
+    premiumLink = data.premium_bot_link || "";
+  }catch(e){}
+}
+
+async function loadQuotaStatus(){
+  try{
+    const initData = tg && tg.initData ? tg.initData : "";
+    const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
+    const res = await fetch(`${API_BASE}/api/quota?init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`);
+    const data = await res.json();
+    userIsPremium = !!data.is_premium;
+    meState.quota = data;
+    fillProfileSheet();
+  }catch(e){}
+}
+
+async function loadMe(){
+  try{
+    const initData = tg && tg.initData ? tg.initData : "";
+    const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
+    const res = await fetch(`${API_BASE}/api/me?init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`);
+    const data = await res.json();
+    if (data && typeof data === "object"){
+      meState = { ...meState, ...data };
+      userIsPremium = !!data.is_premium;
+      if (data.contact_link) contactLink = data.contact_link;
+      fillProfileSheet();
     }
+  }catch(e){}
+}
 
-    async function loadQuotaStatus(){
-      try{
-        const initData = tg && tg.initData ? tg.initData : "";
-        const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
-        const url = `${API_BASE}/api/quota?init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`;
-        const res = await fetch(url);
-        const data = await res.json();
-        userIsPremium = !!data.is_premium;
-        if (meState) meState.quota = data;
-      }catch(e){
-        userIsPremium = false;
-      }
+function openTelegramPremium(){
+  if (!premiumLink){
+    showToast(t("toastPremium"));
+    return;
+  }
+  if (tg && tg.openTelegramLink) tg.openTelegramLink(premiumLink);
+  else window.open(premiumLink, "_blank");
+}
+
+function openPartnerLink(){
+  if (tg && tg.openTelegramLink) tg.openTelegramLink(contactLink);
+  else window.open(contactLink, "_blank");
+}
+
+function openSearchPage(query = "", mode = ""){
+  showToast(t("toastOpenSearch"));
+  const params = new URLSearchParams();
+  if (query) params.set("q", query);
+  if (mode) params.set("mode", mode);
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  setTimeout(() => { window.location.href = `${SEARCH_PAGE}${suffix}`; }, 180);
+}
+
+function renderRestaurantCard(r){
+  return `
+    <article class="restaurant">
+      <div class="restaurant-hero">
+        <img src="${r.image}" alt="${escapeHtml(r.name)}" />
+        <div class="restaurant-actions">
+          <button class="circle-btn card-favorite">♡</button>
+          <button class="circle-btn card-open" data-q="${encodeURIComponent(r.name || "")}">↗</button>
+        </div>
+      </div>
+      <div class="restaurant-body">
+        <div class="restaurant-top">
+          <h3 class="restaurant-name">${escapeHtml(r.name)}</h3>
+          <div class="score">${formatRating(r.rating)}<small>score</small></div>
+        </div>
+        <div class="meta">
+          <span class="meta-item">📍 ${escapeHtml(r.city)}</span>
+          <span class="meta-item">🍽 ${escapeHtml(r.types || "")}</span>
+          <span class="meta-item">⭐ ${formatRating(r.rating)}</span>
+        </div>
+        <p class="restaurant-desc">${escapeHtml(r.note || "")}</p>
+        <div class="restaurant-foot">
+          <div class="mini-metrics"><span>💬 Reviews</span><span>🛡️ GF focus</span></div>
+          <button class="cta card-detail" data-q="${encodeURIComponent(r.name || "")}">Dettagli</button>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function renderRestaurants(){
+  const resultsEl = byId("results");
+  if (!resultsEl) return;
+  let list = [...fallbackRestaurants];
+  if (currentCategory !== "all"){
+    list = list.filter(r => (r.types || "").toLowerCase().includes(currentCategory.toLowerCase()));
+  }
+  resultsEl.innerHTML = list.length
+    ? list.map(renderRestaurantCard).join("")
+    : `<div class="empty" style="grid-column:1/-1">Nessun ristorante trovato per questa categoria.</div>`;
+}
+
+function setupResultsDelegation(){
+  byId("results")?.addEventListener("click", (e) => {
+    const target = e.target.closest("button");
+    if (!target) return;
+    if (target.classList.contains("card-favorite")){
+      showToast(t("toastFavorites"));
+      return;
     }
-
-    async function loadMe(){
-      try{
-        const initData = tg && tg.initData ? tg.initData : "";
-        const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
-        const res = await fetch(`${API_BASE}/api/me?init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`);
-        const data = await res.json();
-        meState = data || meState;
-        contactLink = data.contact_link || contactLink;
-        userIsPremium = !!data.is_premium;
-        fillProfileSheet();
-      }catch(e){}
+    if (target.classList.contains("card-open") || target.classList.contains("card-detail")){
+      const q = target.dataset.q ? decodeURIComponent(target.dataset.q) : "";
+      openSearchPage(q);
     }
+  });
+}
 
-    function fillProfileSheet(){
-      if (byId("profileName")) byId("profileName").textContent = meState.first_name || meState.username || "Utente Telegram";
-      if (byId("profileId")) byId("profileId").textContent = meState.user_id || "non disponibile";
-      if (byId("profilePremium")) byId("profilePremium").textContent = meState.is_premium ? "Attivo" : "Non attivo";
-      const quota = meState.quota || {};
-      const remaining = quota.is_premium ? "Illimitate" : `${quota.remaining_today ?? '—'} / ${quota.free_daily_limit ?? '—'}`;
-      if (byId("profileQuota")) byId("profileQuota").textContent = remaining;
-      if (byId("profileAdminBtn")) byId("profileAdminBtn").style.display = meState.is_admin ? "inline-flex" : "none";
-    }
+function setupTopbarHideOnScroll(){
+  const topbar = byId("topbar");
+  if (!topbar) return;
+  window.addEventListener("scroll", () => {
+    const y = window.scrollY || 0;
+    if (y > lastScrollY && y > 40) topbar.classList.add("hidden");
+    else topbar.classList.remove("hidden");
+    lastScrollY = y;
+  }, { passive: true });
+}
 
-    function openTelegramPremium(){
-      if (!premiumLink){
-        showToast(t("toastPremium"));
-        return;
-      }
-      if (tg && tg.openTelegramLink){
-        tg.openTelegramLink(premiumLink);
-      } else {
-        window.open(premiumLink, "_blank");
-      }
-    }
+function hardDisableZoom(){
+  document.addEventListener("gesturestart", e => e.preventDefault(), { passive: false });
+  let lastTouchEnd = 0;
+  document.addEventListener("touchend", e => {
+    const now = Date.now();
+    if (now - lastTouchEnd <= 300) e.preventDefault();
+    lastTouchEnd = now;
+  }, { passive: false });
+  document.addEventListener("wheel", e => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
+}
 
-    function setupTopbarHideOnScroll(){
-      const topbar = document.getElementById("topbar");
-      window.addEventListener("scroll", () => {
-        const y = window.scrollY;
-        if (y > lastScrollY && y > 40) topbar.classList.add("hidden");
-        else topbar.classList.remove("hidden");
-        lastScrollY = y;
-      }, {passive:true});
-    }
+function bindEvents(){
+  qsa(".lang-btn").forEach(btn => btn.addEventListener("click", () => {
+    currentLang = btn.dataset.lang;
+    applyTranslations();
+  }));
 
-    function hardDisableZoom(){
-      document.addEventListener("gesturestart", function(e){ e.preventDefault(); }, {passive:false});
-      let lastTouchEnd = 0;
-      document.addEventListener("touchend", function(e){
-        const now = Date.now();
-        if (now - lastTouchEnd <= 300) e.preventDefault();
-        lastTouchEnd = now;
-      }, {passive:false});
-      document.addEventListener("wheel", function(e){
-        if (e.ctrlKey) e.preventDefault();
-      }, {passive:false});
-    }
+  byId("favoritesBtn")?.addEventListener("click", () => showToast(t("toastFavorites")));
+  byId("menuBtn")?.addEventListener("click", () => { fillProfileSheet(); byId("profileModal")?.classList.add("show"); });
+  byId("nearMeCard")?.addEventListener("click", () => openSearchPage("", "nearby"));
+  byId("topRatedCard")?.addEventListener("click", () => byId("resultsSection")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  byId("addPlaceCard")?.addEventListener("click", () => showToast(t("toastAdd")));
+  qsa("[data-open-search]").forEach(el => el.addEventListener("click", () => openSearchPage()));
+  byId("searchBtn")?.addEventListener("click", () => openSearchPage((byId("searchInput")?.value || "").trim()));
+  byId("searchInput")?.addEventListener("keydown", e => { if (e.key === "Enter") openSearchPage((byId("searchInput")?.value || "").trim()); });
+  qsa("[data-query]").forEach(btn => btn.addEventListener("click", () => openSearchPage(btn.dataset.query || "")));
+  byId("refreshBtn")?.addEventListener("click", renderRestaurants);
+  byId("premiumBtn")?.addEventListener("click", () => byId("premiumModal")?.classList.add("show"));
+  byId("partnerBtn")?.addEventListener("click", openPartnerLink);
+  byId("continuePremium")?.addEventListener("click", openTelegramPremium);
+  byId("closeModal")?.addEventListener("click", () => byId("premiumModal")?.classList.remove("show"));
+  byId("premiumModal")?.addEventListener("click", e => { if (e.target.id === "premiumModal") byId("premiumModal")?.classList.remove("show"); });
+  byId("profilePremiumBtn")?.addEventListener("click", openTelegramPremium);
+  byId("closeProfileBtn")?.addEventListener("click", () => byId("profileModal")?.classList.remove("show"));
+  byId("profileModal")?.addEventListener("click", e => { if (e.target.id === "profileModal") byId("profileModal")?.classList.remove("show"); });
+  byId("profileAdminBtn")?.addEventListener("click", () => { window.location.href = ADMIN_PAGE; });
 
-    const i18n = {
-      it: {
-        eyebrow: "Telegram mini app",
-        brandSub: "Ricerca ristoranti senza glutine con un’interfaccia finalmente solida, pulita e credibile.",
-        heroKicker: "🌾 Glutenfree bot premium look",
-        heroTitle: "Trova locali gluten free con stile da vera app.",
-        heroText: "Ricerca, categorie, risultati curati e interfaccia stabile sullo schermo. Meno pagina web raffazzonata, più prodotto credibile.",
-        searchBtn: "Cerca",
-        phoneSub: "Top picks della community",
-        actionsTitle: "Azioni rapide",
-        actionsSub: "Una home da app vera: parti da qui, non da una lista buttata in faccia.",
-        quickSearch: "Cerca ristoranti",
-        quickSearchDesc: "Ricerca pulita, veloce, senza casino visivo.",
-        quickNear: "Vicino a me",
-        quickNearDesc: "Pronto per geolocalizzazione e risultati più utili.",
-        quickTop: "Top rated",
-        quickTopDesc: "Scopri i locali più apprezzati dalla community.",
-        quickAdd: "Aggiungi locale",
-        quickAddDesc: "Segnala nuovi posti con un flusso più professionale.",
-        exploreTitle: "Esplora",
-        exploreSub: "",
-        refresh: "Aggiorna",
-        catAll: "Tutti",
-        resultsTitle: "Ristoranti consigliati",
-        resultsSub: "Scopri alcuni locali interessanti, scelti per iniziare bene la tua ricerca dentro Glutenfree bot.",
-        premiumTitle: "Passa a Premium",
-        premiumText: "Ricerche illimitate, interfaccia avanzata, esperienza migliore. Il paywall va mostrato bene, non come una multa di condominio.",
-        premiumPrice: "💎 299 Stars / mese",
-        premiumBtn: "Sblocca Premium",
-        navHome: "Home",
-        navSearch: "Cerca",
-        navExplore: "Esplora",
-        navPremium: "Premium",
-        modalTitle: "Premium mensile",
-        modalText: "Qui puoi collegare il checkout Telegram Stars in modo pulito, elegante e coerente col brand.",
-        continuePremium: "Continua con Telegram",
-        close: "Chiudi",
-        searchPlaceholder: "Cerca città, zona o ristorante...",
-        toastFavorites: "Preferiti in arrivo",
-        toastMenu: "Menu profilo in arrivo",
-        toastNear: "Geolocalizzazione in arrivo",
-        toastAdd: "Form per segnalazione locale in arrivo",
-        toastPremium: "Apro il checkout Premium su Telegram",
-        partnerTitle: "Sei un ristorante gluten free?",
-        partnerText: "Scrivimi per essere in elenco, raccontare il tuo locale e preparare una presenza più forte dentro Glutenfree bot.",
-        partnerBtn: "Scrivimi su Telegram",
-        toastOpenSearch: "Apro la pagina ricerca…"
-      },
-      en: {
-        eyebrow: "Telegram mini app",
-        brandSub: "Gluten free restaurant search with an interface that finally feels solid, clean and credible.",
-        heroKicker: "🌾 Glutenfree bot premium look",
-        heroTitle: "Find gluten free places with real app quality.",
-        heroText: "Search, categories, curated results and a screen-stable interface. Less messy webpage, more believable product.",
-        searchBtn: "Search",
-        phoneSub: "Community top picks",
-        actionsTitle: "Quick actions",
-        actionsSub: "A real app homepage: start here, not with a list thrown in your face.",
-        quickSearch: "Find restaurants",
-        quickSearchDesc: "Fast, clean search without visual chaos.",
-        quickNear: "Near me",
-        quickNearDesc: "Ready for geolocation and better local results.",
-        quickTop: "Top rated",
-        quickTopDesc: "Discover the most loved places from the community.",
-        quickAdd: "Add a place",
-        quickAddDesc: "Suggest new places with a more professional flow.",
-        exploreTitle: "Explore",
-        exploreSub: "",
-        refresh: "Refresh",
-        catAll: "All",
-        resultsTitle: "Recommended restaurants",
-        resultsSub: "Curated cards, clear hierarchy, readable CTAs. Finally something sellable.",
-        premiumTitle: "Go Premium",
-        premiumText: "Unlimited searches, upgraded interface, better experience. The paywall should look premium, not like an electricity bill.",
-        premiumPrice: "💎 299 Stars / month",
-        premiumBtn: "Unlock Premium",
-        navHome: "Home",
-        navSearch: "Search",
-        navExplore: "Explore",
-        navPremium: "Premium",
-        modalTitle: "Monthly Premium",
-        modalText: "Connect Telegram Stars checkout here in a clean, elegant, on-brand way.",
-        continuePremium: "Continue with Telegram",
-        close: "Close",
-        searchPlaceholder: "Search city, area or restaurant...",
-        toastFavorites: "Favorites coming soon",
-        toastMenu: "Profile menu coming soon",
-        toastNear: "Geolocation coming soon",
-        toastAdd: "Add place form coming soon",
-        toastPremium: "Opening Premium checkout on Telegram",
-        partnerTitle: "Are you a gluten free restaurant?",
-        partnerText: "Write to me to be listed, tell your story and build a stronger presence inside Glutenfree bot.",
-        partnerBtn: "Message me on Telegram",
-        toastOpenSearch: "Opening search page…"
-      }
+  qsa("#categoryToolbar .chip").forEach(btn => btn.addEventListener("click", () => {
+    qsa("#categoryToolbar .chip").forEach(c => c.classList.remove("active"));
+    btn.classList.add("active");
+    currentCategory = btn.dataset.cat || "all";
+    renderRestaurants();
+  }));
+
+  qsa(".nav-btn").forEach(btn => btn.addEventListener("click", () => {
+    qsa(".nav-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    const map = {
+      home: document.querySelector(".hero"),
+      search: byId("actionsSection"),
+      explore: byId("exploreSection"),
+      premium: byId("premiumSection")
     };
+    map[btn.dataset.nav]?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }));
 
-    const fallbackRestaurants = [
-      { name: "Rose Bakery", city: "Milano", rating: 4.8, types: "Bakery", note: "Ambiente fresco, brunch curato e opzioni gluten free ben comunicate.", image: foodIllustration("#14b8a6", "#06b6d4", "bakery") },
-      { name: "Pizza Nuvola", city: "Bologna", rating: 4.9, types: "Pizzeria", note: "Impasti dedicati, card molto più credibile e tono da vero brand.", image: foodIllustration("#22c55e", "#14b8a6", "pizza") },
-      { name: "Verde e Grano", city: "Roma", rating: 4.7, types: "Bistrot", note: "Piatti stagionali, menu leggibile e look professionale.", image: foodIllustration("#0ea5e9", "#14b8a6", "bowl") },
-      { name: "Caffè Quercia", city: "Torino", rating: 4.6, types: "Caffè", note: "Colazioni semplici, chiare e con promessa gluten free più affidabile.", image: foodIllustration("#14b8a6", "#84cc16", "coffee") }
-    ];
+  setupResultsDelegation();
+}
 
-    let currentLang = localStorage.getItem("gf_lang") || "it";
-    let currentCategory = "all";
+function initIndexPage(){
+  applyTranslations();
+  renderRestaurants();
+  bindEvents();
+  hardDisableZoom();
+  setupTopbarHideOnScroll();
+  loadPremiumLink();
+  loadQuotaStatus();
+  loadMe();
 
-    function foodIllustration(c1, c2, type){
-      const icon = {
-        bakery: `<rect x="120" y="86" width="120" height="70" rx="32" fill="rgba(255,255,255,.95)"/><circle cx="148" cy="108" r="6" fill="#d97706"/><circle cx="176" cy="102" r="8" fill="#d97706"/><circle cx="205" cy="108" r="7" fill="#d97706"/>`,
-        pizza: `<circle cx="180" cy="112" r="54" fill="#fde68a"/><path d="M180 58L226 144H134L180 58Z" fill="#f97316"/><circle cx="180" cy="106" r="6" fill="#b91c1c"/><circle cx="166" cy="120" r="6" fill="#b91c1c"/><circle cx="194" cy="120" r="6" fill="#b91c1c"/>`,
-        bowl: `<circle cx="180" cy="118" r="52" fill="rgba(255,255,255,.95)"/><path d="M130 118c0 30 22 54 50 54s50-24 50-54" fill="#10b981"/><circle cx="161" cy="104" r="10" fill="#f59e0b"/><circle cx="199" cy="102" r="11" fill="#22c55e"/><circle cx="180" cy="90" r="9" fill="#ef4444"/>`,
-        coffee: `<rect x="140" y="82" width="84" height="74" rx="18" fill="rgba(255,255,255,.95)"/><path d="M224 96h12c12 0 20 8 20 20s-8 20-20 20h-12" stroke="rgba(255,255,255,.95)" stroke-width="10" fill="none"/><path d="M164 70c-10 12-2 16-2 24" stroke="rgba(255,255,255,.92)" stroke-width="7" stroke-linecap="round"/><path d="M192 70c-10 12-2 16-2 24" stroke="rgba(255,255,255,.92)" stroke-width="7" stroke-linecap="round"/>`
-      }[type];
+  if (tg){
+    tg.ready();
+    tg.expand();
+    tg.setHeaderColor("#f4fbfa");
+    tg.setBackgroundColor("#f4fbfa");
+  }
+}
 
-      return `data:image/svg+xml;utf8,${encodeURIComponent(`
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 180">
-          <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop offset="0%" stop-color="${c1}"/><stop offset="100%" stop-color="${c2}"/></linearGradient></defs>
-          <rect width="360" height="180" fill="url(#g)"/>
-          <circle cx="60" cy="34" r="22" fill="rgba(255,255,255,.14)"/>
-          <circle cx="300" cy="34" r="36" fill="rgba(255,255,255,.12)"/>
-          <circle cx="290" cy="150" r="28" fill="rgba(255,255,255,.14)"/>
-          ${icon}
-        </svg>
-      `)}`;
-    }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initIndexPage);
+else initIndexPage();
 
-    function t(key){
-      return i18n[currentLang][key] || key;
-    }
-
-    function applyTranslations(){
-      document.querySelectorAll("[data-i18n]").forEach(el => {
-        const key = el.dataset.i18n;
-        el.textContent = t(key);
-      });
-      document.getElementById("searchInput").placeholder = t("searchPlaceholder");
-      document.querySelectorAll(".lang-btn").forEach(btn => {
-        btn.classList.toggle("active", btn.dataset.lang === currentLang);
-      });
-      localStorage.setItem("gf_lang", currentLang);
-    }
-
-    function showToast(message){
-      const toast = document.getElementById("toast");
-      toast.textContent = message;
-      toast.classList.add("show");
-      clearTimeout(showToast._t);
-      showToast._t = setTimeout(() => toast.classList.remove("show"), 1800);
-    }
-
-    function formatRating(value){
-      if (value === null || value === undefined || value === "") return "—";
-      return Number(value).toFixed(1);
-    }
-
-    function escapeHtml(str){
-      return String(str).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
-    }
-
-    function restaurantCard(r){
-      return `
-        <article class="restaurant">
-          <div class="restaurant-hero">
-            <img src="${r.image}" alt="${escapeHtml(r.name)}" />
-                        <div class="restaurant-actions">
-              <button class="circle-btn" onclick="showToast('${escapeJs(t("toastFavorites"))}')">♡</button>
-              <button class="circle-btn" onclick="window.location.href='${SEARCH_PAGE}?q=${encodeURIComponent(r.name)}'">↗</button>
-            </div>
-          </div>
-          <div class="restaurant-body">
-            <div class="restaurant-top">
-              <h3 class="restaurant-name">${escapeHtml(r.name)}</h3>
-              <div class="score">${formatRating(r.rating)}<small>score</small></div>
-            </div>
-            <div class="meta">
-              <span class="meta-item">📍 ${escapeHtml(r.city)}</span>
-              <span class="meta-item">🍽 ${escapeHtml(r.types)}</span>
-              <span class="meta-item">⭐ ${formatRating(r.rating)}</span>
-            </div>
-            <p class="restaurant-desc">${escapeHtml(r.note)}</p>
-            <div class="restaurant-foot">
-              <div class="mini-metrics"><span>💬 Reviews</span><span>🛡️ GF focus</span></div>
-              <button class="cta" onclick="window.location.href='${SEARCH_PAGE}?q=${encodeURIComponent(r.name)}'">Dettagli</button>
-            </div>
-          </div>
-        </article>
-      `;
-    }
-
-    function renderRestaurants(){
-      const resultsEl = document.getElementById("results");
-      let list = [...fallbackRestaurants];
-      if (currentCategory !== "all") {
-        list = list.filter(r => (r.types || "").toLowerCase().includes(currentCategory.toLowerCase()));
-      }
-      resultsEl.innerHTML = list.map(restaurantCard).join("");
-      if (!list.length) {
-        resultsEl.innerHTML = `<div class="empty" style="grid-column:1/-1">Nessun ristorante trovato per questa categoria.</div>`;
-      }
-    }
-
-    function openSearchPage(query = "", mode = ""){
-      showToast(t("toastOpenSearch"));
-      const params = new URLSearchParams();
-      if (query) params.set("q", query);
-      if (mode) params.set("mode", mode);
-      const suffix = params.toString() ? `?${params.toString()}` : "";
-      setTimeout(() => window.location.href = `${SEARCH_PAGE}${suffix}`, 180);
-    }
-
-    function escapeJs(str){
-      return String(str).replaceAll("\\", "\\\\").replaceAll("'", "\\'");
-    }
-
-    qsa(".lang-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        currentLang = btn.dataset.lang;
-
-    function initIndexPage(){
-      applyTranslations();
-      renderRestaurants();
-      hardDisableZoom();
-      setupTopbarHideOnScroll();
-      loadPremiumLink();
-      loadQuotaStatus();
-      loadMe();
-
-      if (tg){
-        tg.ready();
-        tg.expand();
-        tg.setHeaderColor("#f4fbfa");
-        tg.setBackgroundColor("#f4fbfa");
-      }
-    }
-
-    if (document.readyState === "loading"){
-      document.addEventListener("DOMContentLoaded", initIndexPage);
-    } else {
-      initIndexPage();
-    }
-
-  </script>
+</script>
 </body>
 </html>

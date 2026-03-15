@@ -139,311 +139,321 @@
   <div class="toast" id="toast"></div>
 
   <script>
-    const API_BASE = "https://glutenfree-bot-184042068933.europe-west1.run.app";
-    const API_SEARCH = API_BASE + "/api/restaurants/search";
-    const API_NEARBY = API_BASE + "/api/restaurants/nearby";
-    const API_ME = API_BASE + "/api/me";
-    let meState = { user_id: 0, is_admin: false, is_premium: false, quota: null };
 
-    const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
-    let premiumLink = "";
-    let userIsPremium = false;
+const API_BASE = "https://glutenfree-bot-184042068933.europe-west1.run.app";
+const API_SEARCH = API_BASE + "/api/restaurants/search";
+const API_NEARBY = API_BASE + "/api/restaurants/nearby";
+const API_ME = API_BASE + "/api/me";
+const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
 
-    async function loadPremiumLink(){
-      try{
-        const res = await fetch(`${API_BASE}/api/premium-link`);
-        const data = await res.json();
-        premiumLink = data.premium_bot_link || "";
-      }catch(e){}
+let premiumLink = "";
+let userIsPremium = false;
+let meState = { user_id: 0, is_admin: false, is_premium: false, quota: null };
+let currentCategory = "all";
+let sortDesc = true;
+const params = new URLSearchParams(window.location.search);
+const initialQuery = params.get("q") || "";
+const initialMode = params.get("mode") || "";
+
+const fallbackRestaurants = [
+  { id: 1, name: "Rose Bakery", city: "Milano", rating: 4.8, types: "Bakery", note: "Ambiente fresco, brunch curato e opzioni gluten free ben comunicate.", image: foodIllustration("#14b8a6", "#06b6d4", "bakery") },
+  { id: 2, name: "Pizza Nuvola", city: "Bologna", rating: 4.9, types: "Pizzeria", note: "Impasti dedicati e promessa gluten free molto chiara.", image: foodIllustration("#22c55e", "#14b8a6", "pizza") },
+  { id: 3, name: "Verde e Grano", city: "Roma", rating: 4.7, types: "Bistrot", note: "Piatti stagionali e look professionale.", image: foodIllustration("#0ea5e9", "#14b8a6", "bowl") },
+  { id: 4, name: "Caffè Quercia", city: "Torino", rating: 4.6, types: "Caffè", note: "Colazioni semplici, chiare e credibili.", image: foodIllustration("#14b8a6", "#84cc16", "coffee") }
+];
+
+function byId(id){ return document.getElementById(id); }
+function qsa(selector){ return Array.from(document.querySelectorAll(selector)); }
+
+function foodIllustration(c1, c2, type){
+  const icon = {
+    bakery: `<rect x="120" y="86" width="120" height="70" rx="32" fill="rgba(255,255,255,.95)"/><circle cx="148" cy="108" r="6" fill="#d97706"/><circle cx="176" cy="102" r="8" fill="#d97706"/><circle cx="205" cy="108" r="7" fill="#d97706"/>`,
+    pizza: `<circle cx="180" cy="112" r="54" fill="#fde68a"/><path d="M180 58L226 144H134L180 58Z" fill="#f97316"/><circle cx="180" cy="106" r="6" fill="#b91c1c"/><circle cx="166" cy="120" r="6" fill="#b91c1c"/><circle cx="194" cy="120" r="6" fill="#b91c1c"/>`,
+    bowl: `<circle cx="180" cy="118" r="52" fill="rgba(255,255,255,.95)"/><path d="M130 118c0 30 22 54 50 54s50-24 50-54" fill="#10b981"/><circle cx="161" cy="104" r="10" fill="#f59e0b"/><circle cx="199" cy="102" r="11" fill="#22c55e"/><circle cx="180" cy="90" r="9" fill="#ef4444"/>`,
+    coffee: `<rect x="140" y="82" width="84" height="74" rx="18" fill="rgba(255,255,255,.95)"/><path d="M224 96h12c12 0 20 8 20 20s-8 20-20 20h-12" stroke="rgba(255,255,255,.95)" stroke-width="10" fill="none"/><path d="M164 70c-10 12-2 16-2 24" stroke="rgba(255,255,255,.92)" stroke-width="7" stroke-linecap="round"/><path d="M192 70c-10 12-2 16-2 24" stroke="rgba(255,255,255,.92)" stroke-width="7" stroke-linecap="round"/>`
+  }[type];
+  return `data:image/svg+xml;utf8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 180">
+      <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop offset="0%" stop-color="${c1}"/><stop offset="100%" stop-color="${c2}"/></linearGradient></defs>
+      <rect width="360" height="180" fill="url(#g)"/>
+      <circle cx="60" cy="34" r="22" fill="rgba(255,255,255,.14)"/>
+      <circle cx="300" cy="34" r="36" fill="rgba(255,255,255,.12)"/>
+      <circle cx="290" cy="150" r="28" fill="rgba(255,255,255,.14)"/>
+      ${icon}
+    </svg>
+  `)}`;
+}
+
+function escapeHtml(str){
+  return String(str).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
+
+function showToast(message){
+  const toast = byId("toast");
+  if (!toast) return;
+  toast.textContent = message;
+  toast.classList.add("show");
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => toast.classList.remove("show"), 1800);
+}
+
+function formatRating(value){
+  if (value === null || value === undefined || value === "") return "—";
+  return Number(value).toFixed(1);
+}
+
+async function loadPremiumLink(){
+  try{
+    const res = await fetch(`${API_BASE}/api/premium-link`);
+    const data = await res.json();
+    premiumLink = data.premium_bot_link || "";
+  }catch(e){}
+}
+
+async function loadQuotaStatus(){
+  try{
+    const initData = tg && tg.initData ? tg.initData : "";
+    const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
+    const res = await fetch(`${API_BASE}/api/quota?init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`);
+    const data = await res.json();
+    userIsPremium = !!data.is_premium;
+    meState.quota = data;
+  }catch(e){}
+}
+
+async function loadMe(){
+  try{
+    const initData = tg && tg.initData ? tg.initData : "";
+    const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
+    const res = await fetch(`${API_ME}?init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`);
+    const data = await res.json();
+    if (data && typeof data === "object"){
+      meState = { ...meState, ...data };
+      userIsPremium = !!data.is_premium;
     }
+  }catch(e){}
+}
 
-    async function loadQuotaStatus(){
-      try{
-        const initData = tg && tg.initData ? tg.initData : "";
-        const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
-        const url = `${API_BASE}/api/quota?init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`;
-        const res = await fetch(url);
-        const data = await res.json();
-        userIsPremium = !!data.is_premium;
-        meState.quota = data;
-      }catch(e){
-        userIsPremium = false;
-      }
+function openTelegramPremium(){
+  if (!premiumLink){
+    showToast("Collega il premium link nel backend");
+    return;
+  }
+  if (tg && tg.openTelegramLink) tg.openTelegramLink(premiumLink);
+  else window.open(premiumLink, "_blank");
+}
+
+function hardDisableZoom(){
+  document.addEventListener("gesturestart", e => e.preventDefault(), { passive: false });
+  let lastTouchEnd = 0;
+  document.addEventListener("touchend", e => {
+    const now = Date.now();
+    if (now - lastTouchEnd <= 300) e.preventDefault();
+    lastTouchEnd = now;
+  }, { passive: false });
+  document.addEventListener("wheel", e => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
+}
+
+function enrichItems(items){
+  if (!Array.isArray(items) || !items.length) return [...fallbackRestaurants];
+  return items.map((r, i) => ({
+    ...r,
+    image: r.image || fallbackRestaurants[i % fallbackRestaurants.length].image,
+    note: r.note || r.notes || fallbackRestaurants[i % fallbackRestaurants.length].note,
+    types: r.types || fallbackRestaurants[i % fallbackRestaurants.length].types
+  }));
+}
+
+function restaurantCard(r){
+  const payload = encodeURIComponent(JSON.stringify(r));
+  return `
+    <article class="restaurant">
+      <div class="hero"><img src="${r.image}" alt="${escapeHtml(r.name)}" /></div>
+      <div class="body">
+        <div class="head">
+          <h3 class="name">${escapeHtml(r.name)}</h3>
+          <div class="score">${formatRating(r.rating)}<small>score</small></div>
+        </div>
+        <div class="meta">
+          <span>📍 ${escapeHtml(r.city || "")}</span>
+          <span>🍽 ${escapeHtml(r.types || "")}</span>
+          <span>⭐ ${formatRating(r.rating)}</span>
+        </div>
+        <p class="desc">${escapeHtml(r.note || "")}</p>
+        <div class="foot">
+          <small>💬 Reviews • 🛡️ GF focus</small>
+          <button class="cta detail-btn" data-payload="${payload}">Dettagli</button>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function render(list){
+  const box = byId("results");
+  if (!box) return;
+  box.innerHTML = list.length
+    ? list.map(restaurantCard).join("")
+    : `<div class="empty">Nessun ristorante trovato. Prova con un’altra parola chiave.</div>`;
+}
+
+function applyFilters(list){
+  let data = [...list];
+  if (currentCategory !== "all"){
+    data = data.filter(r => (r.types || "").toLowerCase().includes(currentCategory.toLowerCase()));
+  }
+  data.sort((a, b) => sortDesc ? (b.rating || 0) - (a.rating || 0) : (a.rating || 0) - (b.rating || 0));
+  return data;
+}
+
+function updateSummary(query, nearbyMode){
+  if (byId("resultsTitle")) byId("resultsTitle").textContent = nearbyMode ? "Vicino a te" : "Risultati ricerca";
+  if (byId("resultsSub")) byId("resultsSub").textContent = nearbyMode
+    ? "Risultati ordinati per vicinanza, mantenendo lo stesso stile della mini app."
+    : `Ricerca: ${query || "gluten free"}`;
+}
+
+async function search(query){
+  const q = (query || "").trim();
+  if (byId("results")) byId("results").innerHTML = `<div class="empty">Caricamento risultati…</div>`;
+  updateSummary(q, false);
+
+  try{
+    const initData = tg && tg.initData ? tg.initData : "";
+    const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
+    const res = await fetch(`${API_SEARCH}?q=${encodeURIComponent(q)}&init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`);
+    const data = await res.json();
+    if (data.paywall){
+      byId("premiumModal")?.classList.add("show");
+      return;
     }
+    render(applyFilters(enrichItems(data.items || data.restaurants || [])));
+  }catch(e){
+    render(applyFilters(enrichItems([])));
+  }
+}
 
-    async function loadMe(){
-      try{
-        const initData = tg && tg.initData ? tg.initData : "";
-        const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
-        const res = await fetch(`${API_ME}?init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`);
-        const data = await res.json();
-        meState = data || meState;
-        userIsPremium = !!data.is_premium;
-      }catch(e){}
-    }
-
-    function openTelegramPremium(){
-      if (!premiumLink){
-        showToast("Collega il premium link nel backend");
-        return;
-      }
-      if (tg && tg.openTelegramLink){
-        tg.openTelegramLink(premiumLink);
-      } else {
-        window.open(premiumLink, "_blank");
-      }
-    }
-
-    async function requirePremiumForDetails(restaurant){
-      if (!userIsPremium){
-        const m = byId("premiumModal"); if (m) m.classList.add("show");
-        return;
-      }
+async function searchNearby(){
+  if (byId("results")) byId("results").innerHTML = `<div class="empty">Sto cercando i locali vicini a te…</div>`;
+  updateSummary("", true);
+  if (!navigator.geolocation){
+    showToast("Geolocalizzazione non disponibile");
+    render(applyFilters(enrichItems([])));
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    try{
       const initData = tg && tg.initData ? tg.initData : "";
       const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
-      try{
-        const res = await fetch(`${API_BASE}/api/restaurants/${restaurant.id}/details?init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`);
-        if (res.status === 403){
-          const m = byId("premiumModal"); if (m) m.classList.add("show");
-          return;
-        }
-        const data = await res.json();
-        const item = data.item || restaurant;
-        openDetailsModal(item);
-      }catch(err){
-        showToast("Errore nel caricamento dettagli");
-      }
-    }
-
-    function openDetailsModal(restaurant){
-      const mapLink = restaurant.google_maps_url ? `<a href="${restaurant.google_maps_url}" target="_blank" rel="noopener">Apri Google Maps</a>` : `<span>Non disponibile</span>`;
-      const phone = restaurant.phone ? `<a href="tel:${restaurant.phone}">${escapeHtml(restaurant.phone)}</a>` : `<span>Non disponibile</span>`;
-      const website = restaurant.website ? `<a href="${restaurant.website}" target="_blank" rel="noopener">Visita sito</a>` : `<span>Non disponibile</span>`;
-      const address = restaurant.address ? escapeHtml(restaurant.address) : "Non disponibile";
-      if (byId("detailsTitle")) byId("detailsTitle").textContent = restaurant.name || "Dettagli";
-      if (byId("detailsBody")) byId("detailsBody").innerHTML = `
-        <p><strong>Città:</strong> ${escapeHtml(restaurant.city || "-")}</p>
-        <p><strong>Indirizzo:</strong> ${address}</p>
-        <p><strong>Categoria:</strong> ${escapeHtml(restaurant.types || "-")}</p>
-        <p><strong>Rating:</strong> ${formatRating(restaurant.rating)}</p>
-        <p><strong>Telefono:</strong> ${phone}</p>
-        <p><strong>Sito web:</strong> ${website}</p>
-        <p><strong>Google Maps:</strong> ${mapLink}</p>
-        <p><strong>Recapito:</strong> ${address}</p>
-      `;
-      const m = byId("detailsModal"); if (m) m.classList.add("show");
-    }
-
-    function hardDisableZoom(){
-      document.addEventListener("gesturestart", function(e){ e.preventDefault(); }, {passive:false});
-      let lastTouchEnd = 0;
-      document.addEventListener("touchend", function(e){
-        const now = Date.now();
-        if (now - lastTouchEnd <= 300) e.preventDefault();
-        lastTouchEnd = now;
-      }, {passive:false});
-      document.addEventListener("wheel", function(e){
-        if (e.ctrlKey) e.preventDefault();
-      }, {passive:false});
-    }
-    const params = new URLSearchParams(window.location.search);
-    const initialQuery = params.get("q") || "";
-    let currentCategory = "all";
-    let sortDesc = true;
-
-    const fallbackRestaurants = [
-      { name: "Rose Bakery", city: "Milano", rating: 4.8, types: "Bakery", note: "Ambiente fresco, brunch curato e opzioni gluten free ben comunicate.", image: foodIllustration("#14b8a6", "#06b6d4", "bakery") },
-      { name: "Pizza Nuvola", city: "Bologna", rating: 4.9, types: "Pizzeria", note: "Impasti dedicati e promessa gluten free molto chiara.", image: foodIllustration("#22c55e", "#14b8a6", "pizza") },
-      { name: "Verde e Grano", city: "Roma", rating: 4.7, types: "Bistrot", note: "Piatti stagionali e look professionale.", image: foodIllustration("#0ea5e9", "#14b8a6", "bowl") },
-      { name: "Caffè Quercia", city: "Torino", rating: 4.6, types: "Caffè", note: "Colazioni semplici, chiare e credibili.", image: foodIllustration("#14b8a6", "#84cc16", "coffee") }
-    ];
-
-    function foodIllustration(c1, c2, type){
-      const icon = {
-        bakery: `<rect x="120" y="86" width="120" height="70" rx="32" fill="rgba(255,255,255,.95)"/><circle cx="148" cy="108" r="6" fill="#d97706"/><circle cx="176" cy="102" r="8" fill="#d97706"/><circle cx="205" cy="108" r="7" fill="#d97706"/>`,
-        pizza: `<circle cx="180" cy="112" r="54" fill="#fde68a"/><path d="M180 58L226 144H134L180 58Z" fill="#f97316"/><circle cx="180" cy="106" r="6" fill="#b91c1c"/><circle cx="166" cy="120" r="6" fill="#b91c1c"/><circle cx="194" cy="120" r="6" fill="#b91c1c"/>`,
-        bowl: `<circle cx="180" cy="118" r="52" fill="rgba(255,255,255,.95)"/><path d="M130 118c0 30 22 54 50 54s50-24 50-54" fill="#10b981"/><circle cx="161" cy="104" r="10" fill="#f59e0b"/><circle cx="199" cy="102" r="11" fill="#22c55e"/><circle cx="180" cy="90" r="9" fill="#ef4444"/>`,
-        coffee: `<rect x="140" y="82" width="84" height="74" rx="18" fill="rgba(255,255,255,.95)"/><path d="M224 96h12c12 0 20 8 20 20s-8 20-20 20h-12" stroke="rgba(255,255,255,.95)" stroke-width="10" fill="none"/><path d="M164 70c-10 12-2 16-2 24" stroke="rgba(255,255,255,.92)" stroke-width="7" stroke-linecap="round"/><path d="M192 70c-10 12-2 16-2 24" stroke="rgba(255,255,255,.92)" stroke-width="7" stroke-linecap="round"/>`
-      }[type];
-
-      return `data:image/svg+xml;utf8,${encodeURIComponent(`
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 180">
-          <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop offset="0%" stop-color="${c1}"/><stop offset="100%" stop-color="${c2}"/></linearGradient></defs>
-          <rect width="360" height="180" fill="url(#g)"/>
-          <circle cx="60" cy="34" r="22" fill="rgba(255,255,255,.14)"/>
-          <circle cx="300" cy="34" r="36" fill="rgba(255,255,255,.12)"/>
-          <circle cx="290" cy="150" r="28" fill="rgba(255,255,255,.14)"/>
-          ${icon}
-        </svg>
-      `)}`;
-    }
-
-    function byId(id){ return document.getElementById(id); }
-    function onIf(id, eventName, handler){ const el = byId(id); if (el) el.addEventListener(eventName, handler); }
-    function qsa(selector){ return Array.from(document.querySelectorAll(selector)); }
-
-    function showToast(message){
-      const toast = byId("toast");
-      if (!toast) return;
-      toast.textContent = message;
-      toast.classList.add("show");
-      clearTimeout(showToast._t);
-      showToast._t = setTimeout(() => toast.classList.remove("show"), 1800);
-    }
-
-    function formatRating(value){
-      if (value === null || value === undefined || value === "") return "—";
-      return Number(value).toFixed(1);
-    }
-
-    function escapeHtml(str){
-      return String(str).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
-    }
-
-    function restaurantCard(r){
-      const payload = encodeURIComponent(JSON.stringify(r));
-      return `
-        <article class="restaurant">
-          <div class="hero">
-            <img src="${r.image}" alt="${escapeHtml(r.name)}" />
-          </div>
-          <div class="body">
-            <div class="head">
-              <h3 class="name">${escapeHtml(r.name)}</h3>
-              <div class="score">${formatRating(r.rating)}<small>score</small></div>
-            </div>
-            <div class="meta">
-              <span>📍 ${escapeHtml(r.city)}</span>
-              <span>🍽 ${escapeHtml(r.types)}</span>
-              <span>⭐ ${formatRating(r.rating)}</span>
-            </div>
-            <p class="desc">${escapeHtml(r.note)}</p>
-            <div class="foot">
-              <small>💬 Reviews • 🛡️ GF focus</small>
-              <button class="cta" onclick="requirePremiumForDetails(JSON.parse(decodeURIComponent('${payload}')))">Dettagli</button>
-            </div>
-          </div>
-        </article>
-      `;
-    }
-
-    function render(list){
-      const box = document.getElementById("results");
-      if (!list.length){
-        box.innerHTML = `<div class="empty">Nessun ristorante trovato. Prova con un’altra parola chiave.</div>`;
+      const res = await fetch(`${API_NEARBY}?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&radius_km=25&init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`);
+      const data = await res.json();
+      if (data.paywall){
+        byId("premiumModal")?.classList.add("show");
         return;
       }
-      box.innerHTML = list.map(restaurantCard).join("");
+      render(applyFilters(enrichItems(data.items || [])));
+    }catch(e){
+      render(applyFilters(enrichItems([])));
     }
+  }, () => {
+    showToast("Permesso posizione negato");
+    render(applyFilters(enrichItems([])));
+  }, { enableHighAccuracy: true, timeout: 12000 });
+}
 
-    function applyFilters(list){
-      let data = [...list];
-      if (currentCategory !== "all"){
-        data = data.filter(r => (r.types || "").toLowerCase().includes(currentCategory.toLowerCase()));
-      }
-      data.sort((a,b) => sortDesc ? (b.rating||0) - (a.rating||0) : (a.rating||0) - (b.rating||0));
-      return data;
+async function requirePremiumForDetails(restaurant){
+  if (!userIsPremium){
+    byId("premiumModal")?.classList.add("show");
+    return;
+  }
+  const initData = tg && tg.initData ? tg.initData : "";
+  const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
+  try{
+    const res = await fetch(`${API_BASE}/api/restaurants/${restaurant.id}/details?init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`);
+    if (res.status === 403){
+      byId("premiumModal")?.classList.add("show");
+      return;
     }
+    const data = await res.json();
+    openDetailsModal(data.item || restaurant);
+  }catch(e){
+    showToast("Errore nel caricamento dettagli");
+  }
+}
 
-    async function search(query){
-      const q = (query || "").trim();
-      const box = document.getElementById("results");
-      box.innerHTML = `<div class="empty">Caricamento risultati…</div>`;
+function openDetailsModal(restaurant){
+  const mapLink = restaurant.google_maps_url ? `<a href="${restaurant.google_maps_url}" target="_blank" rel="noopener">Apri Google Maps</a>` : `<span>Non disponibile</span>`;
+  const phone = restaurant.phone ? `<a href="tel:${restaurant.phone}">${escapeHtml(restaurant.phone)}</a>` : `<span>Non disponibile</span>`;
+  const website = restaurant.website ? `<a href="${restaurant.website}" target="_blank" rel="noopener">Visita sito</a>` : `<span>Non disponibile</span>`;
+  const address = restaurant.address ? escapeHtml(restaurant.address) : "Non disponibile";
+  if (byId("detailsTitle")) byId("detailsTitle").textContent = restaurant.name || "Dettagli ristorante";
+  if (byId("detailsBody")){
+    byId("detailsBody").innerHTML = `
+      <p><strong>Città:</strong> ${escapeHtml(restaurant.city || "-")}</p>
+      <p><strong>Indirizzo:</strong> ${address}</p>
+      <p><strong>Categoria:</strong> ${escapeHtml(restaurant.types || "-")}</p>
+      <p><strong>Rating:</strong> ${formatRating(restaurant.rating)}</p>
+      <p><strong>Telefono:</strong> ${phone}</p>
+      <p><strong>Sito web:</strong> ${website}</p>
+      <p><strong>Google Maps:</strong> ${mapLink}</p>
+      <p><strong>Recapito:</strong> ${address}</p>
+    `;
+  }
+  byId("detailsModal")?.classList.add("show");
+}
 
-      try{
-        const initData = tg && tg.initData ? tg.initData : "";
-        const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
-        const res = await fetch(`${API_SEARCH}?q=${encodeURIComponent(q)}&init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`);
-        const data = await res.json();
-        if (data.paywall){
-          const m = byId("premiumModal"); if (m) m.classList.add("show");
-          return;
-        }
-        const items = Array.isArray(data.items) ? data.items : (Array.isArray(data.restaurants) ? data.restaurants : []);
-        const merged = items.length ? items.map((r, i) => ({...r, image: fallbackRestaurants[i % fallbackRestaurants.length].image, note: r.note || r.notes || fallbackRestaurants[i % fallbackRestaurants.length].note, types: r.types || fallbackRestaurants[i % fallbackRestaurants.length].types })) : fallbackRestaurants;
-        render(applyFilters(merged));
-      }catch(err){
-        render(applyFilters(fallbackRestaurants));
-      }
-    }
+function bindEvents(){
+  byId("backBtn")?.addEventListener("click", () => window.location.href = "index.html");
+  byId("searchBtn")?.addEventListener("click", () => search((byId("searchInput")?.value || "")));
+  byId("searchInput")?.addEventListener("keydown", e => { if (e.key === "Enter") search((byId("searchInput")?.value || "")); });
+  qsa(".chip").forEach(btn => btn.addEventListener("click", () => {
+    qsa(".chip").forEach(c => c.classList.remove("active"));
+    btn.classList.add("active");
+    currentCategory = btn.dataset.cat || "all";
+    if (btn.id === "nearbyBtn") searchNearby();
+    else search((byId("searchInput")?.value || initialQuery || "gluten free"));
+  }));
+  byId("sortBtn")?.addEventListener("click", () => {
+    sortDesc = !sortDesc;
+    byId("sortBtn").textContent = sortDesc ? "Top rated" : "Lowest rated";
+    if (initialMode === "nearby") searchNearby();
+    else search((byId("searchInput")?.value || initialQuery || "gluten free"));
+  });
+  byId("continuePremium")?.addEventListener("click", openTelegramPremium);
+  byId("closePremiumModal")?.addEventListener("click", () => byId("premiumModal")?.classList.remove("show"));
+  byId("closeDetailsModal")?.addEventListener("click", () => byId("detailsModal")?.classList.remove("show"));
+  byId("premiumModal")?.addEventListener("click", e => { if (e.target.id === "premiumModal") byId("premiumModal")?.classList.remove("show"); });
+  byId("detailsModal")?.addEventListener("click", e => { if (e.target.id === "detailsModal") byId("detailsModal")?.classList.remove("show"); });
+  byId("results")?.addEventListener("click", e => {
+    const btn = e.target.closest(".detail-btn");
+    if (!btn) return;
+    const payload = btn.dataset.payload;
+    if (!payload) return;
+    requirePremiumForDetails(JSON.parse(decodeURIComponent(payload)));
+  });
+}
 
-    async function searchNearby(){
-      const box = document.getElementById("results");
-      box.innerHTML = `<div class="empty">Sto cercando i locali vicini a te…</div>`;
-      if (!navigator.geolocation){
-        showToast("Geolocalizzazione non disponibile");
-        render(applyFilters(fallbackRestaurants));
-        return;
-      }
-      navigator.geolocation.getCurrentPosition(async (pos) => {
-        try{
-          const initData = tg && tg.initData ? tg.initData : "";
-          const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
-          const res = await fetch(`${API_NEARBY}?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&radius_km=25&init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`);
-          const data = await res.json();
-          if (data.paywall){
-            const m = byId("premiumModal"); if (m) m.classList.add("show");
-            return;
-          }
-          const items = Array.isArray(data.items) ? data.items : [];
-          const merged = items.length ? items.map((r, i) => ({...r, image: fallbackRestaurants[i % fallbackRestaurants.length].image, note: r.note || r.notes || fallbackRestaurants[i % fallbackRestaurants.length].note, types: r.types || fallbackRestaurants[i % fallbackRestaurants.length].types })) : fallbackRestaurants;
-          render(applyFilters(merged));
-        }catch(err){
-          render(applyFilters(fallbackRestaurants));
-        }
-      }, () => {
-        showToast("Permesso posizione negato");
-        render(applyFilters(fallbackRestaurants));
-      }, {enableHighAccuracy:true, timeout:12000});
-    }
+function initSearchPage(){
+  if (byId("searchInput")) byId("searchInput").value = initialQuery;
+  bindEvents();
+  hardDisableZoom();
+  loadPremiumLink();
+  loadQuotaStatus();
+  loadMe();
+  if (initialMode === "nearby") searchNearby();
+  else search(initialQuery || "gluten free");
 
-    onIf("backBtn", "click", () => window.location.href = "index.html");
-    onIf("searchBtn", "click", () => search((byId("searchInput")?.value || "")));
-    onIf("searchInput", "keydown", e => {
-      if (e.key === "Enter") search((byId("searchInput")?.value || ""));
-    });
+  if (tg){
+    tg.ready();
+    tg.expand();
+    tg.setHeaderColor("#f4fbfa");
+    tg.setBackgroundColor("#f4fbfa");
+  }
+}
 
-    qsa(".chip").forEach(btn => {
-      btn.addEventListener("click", () => {
-        qsa(".chip").forEach(c => c.classList.remove("active"));
-        btn.classList.add("active");
-        currentCategory = btn.dataset.cat;
-        search((byId("searchInput")?.value || ""));
-      });
-    });
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initSearchPage);
+else initSearchPage();
 
-    onIf("sortBtn", "click", () => {
-      sortDesc = !sortDesc;
-      if (byId("sortBtn")) byId("sortBtn").textContent = sortDesc ? "Top rated" : "Lowest rated";
-      search((byId("searchInput")?.value || ""));
-    });
-
-    function initSearchPage(){
-      if (byId("searchInput")) byId("searchInput").value = initialQuery;
-      onIf("continuePremium", "click", openTelegramPremium);
-      onIf("closePremiumModal", "click", () => { const m = byId("premiumModal"); if (m) m.classList.remove("show"); });
-      onIf("closeDetailsModal", "click", () => { const m = byId("detailsModal"); if (m) m.classList.remove("show"); });
-      onIf("premiumModal", "click", e => { if (e.target.id === "premiumModal") { const m = byId("premiumModal"); if (m) m.classList.remove("show"); } });
-      onIf("detailsModal", "click", e => { if (e.target.id === "detailsModal") { const m = byId("detailsModal"); if (m) m.classList.remove("show"); } });
-      hardDisableZoom();
-      loadPremiumLink();
-      loadQuotaStatus();
-      search(initialQuery || "gluten free");
-
-      if (tg){
-        tg.ready();
-        tg.expand();
-        tg.setHeaderColor("#f4fbfa");
-        tg.setBackgroundColor("#f4fbfa");
-      }
-    }
-
-    if (document.readyState === "loading"){
-      document.addEventListener("DOMContentLoaded", initSearchPage);
-    } else {
-      initSearchPage();
-    }
-
-  </script>
+</script>
 </body>
 </html>
