@@ -196,7 +196,7 @@
 
     async function requirePremiumForDetails(restaurant){
       if (!userIsPremium){
-        document.getElementById("premiumModal").classList.add("show");
+        const m = byId("premiumModal"); if (m) m.classList.add("show");
         return;
       }
       const initData = tg && tg.initData ? tg.initData : "";
@@ -204,7 +204,7 @@
       try{
         const res = await fetch(`${API_BASE}/api/restaurants/${restaurant.id}/details?init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`);
         if (res.status === 403){
-          document.getElementById("premiumModal").classList.add("show");
+          const m = byId("premiumModal"); if (m) m.classList.add("show");
           return;
         }
         const data = await res.json();
@@ -220,8 +220,8 @@
       const phone = restaurant.phone ? `<a href="tel:${restaurant.phone}">${escapeHtml(restaurant.phone)}</a>` : `<span>Non disponibile</span>`;
       const website = restaurant.website ? `<a href="${restaurant.website}" target="_blank" rel="noopener">Visita sito</a>` : `<span>Non disponibile</span>`;
       const address = restaurant.address ? escapeHtml(restaurant.address) : "Non disponibile";
-      document.getElementById("detailsTitle").textContent = restaurant.name || "Dettagli";
-      document.getElementById("detailsBody").innerHTML = `
+      if (byId("detailsTitle")) byId("detailsTitle").textContent = restaurant.name || "Dettagli";
+      if (byId("detailsBody")) byId("detailsBody").innerHTML = `
         <p><strong>Città:</strong> ${escapeHtml(restaurant.city || "-")}</p>
         <p><strong>Indirizzo:</strong> ${address}</p>
         <p><strong>Categoria:</strong> ${escapeHtml(restaurant.types || "-")}</p>
@@ -231,7 +231,7 @@
         <p><strong>Google Maps:</strong> ${mapLink}</p>
         <p><strong>Recapito:</strong> ${address}</p>
       `;
-      document.getElementById("detailsModal").classList.add("show");
+      const m = byId("detailsModal"); if (m) m.classList.add("show");
     }
 
     function hardDisableZoom(){
@@ -278,8 +278,13 @@
       `)}`;
     }
 
+    function byId(id){ return document.getElementById(id); }
+    function onIf(id, eventName, handler){ const el = byId(id); if (el) el.addEventListener(eventName, handler); }
+    function qsa(selector){ return Array.from(document.querySelectorAll(selector)); }
+
     function showToast(message){
-      const toast = document.getElementById("toast");
+      const toast = byId("toast");
+      if (!toast) return;
       toast.textContent = message;
       toast.classList.add("show");
       clearTimeout(showToast._t);
@@ -351,7 +356,7 @@
         const res = await fetch(`${API_SEARCH}?q=${encodeURIComponent(q)}&init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`);
         const data = await res.json();
         if (data.paywall){
-          document.getElementById("premiumModal").classList.add("show");
+          const m = byId("premiumModal"); if (m) m.classList.add("show");
           return;
         }
         const items = Array.isArray(data.items) ? data.items : (Array.isArray(data.restaurants) ? data.restaurants : []);
@@ -377,7 +382,7 @@
           const res = await fetch(`${API_NEARBY}?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&radius_km=25&init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`);
           const data = await res.json();
           if (data.paywall){
-            document.getElementById("premiumModal").classList.add("show");
+            const m = byId("premiumModal"); if (m) m.classList.add("show");
             return;
           }
           const items = Array.isArray(data.items) ? data.items : [];
@@ -392,47 +397,53 @@
       }, {enableHighAccuracy:true, timeout:12000});
     }
 
-    document.getElementById("backBtn").addEventListener("click", () => window.location.href = "index.html");
-    document.getElementById("searchBtn").addEventListener("click", () => search(document.getElementById("searchInput").value));
-    document.getElementById("searchInput").addEventListener("keydown", e => {
-      if (e.key === "Enter") search(document.getElementById("searchInput").value);
+    onIf("backBtn", "click", () => window.location.href = "index.html");
+    onIf("searchBtn", "click", () => search((byId("searchInput")?.value || "")));
+    onIf("searchInput", "keydown", e => {
+      if (e.key === "Enter") search((byId("searchInput")?.value || ""));
     });
 
-    document.querySelectorAll(".chip").forEach(btn => {
+    qsa(".chip").forEach(btn => {
       btn.addEventListener("click", () => {
-        document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+        qsa(".chip").forEach(c => c.classList.remove("active"));
         btn.classList.add("active");
         currentCategory = btn.dataset.cat;
-        search(document.getElementById("searchInput").value);
+        search((byId("searchInput")?.value || ""));
       });
     });
 
-    document.getElementById("sortBtn").addEventListener("click", () => {
+    onIf("sortBtn", "click", () => {
       sortDesc = !sortDesc;
-      document.getElementById("sortBtn").textContent = sortDesc ? "Top rated" : "Lowest rated";
-      search(document.getElementById("searchInput").value);
+      if (byId("sortBtn")) byId("sortBtn").textContent = sortDesc ? "Top rated" : "Lowest rated";
+      search((byId("searchInput")?.value || ""));
     });
 
-    document.getElementById("searchInput").value = initialQuery;
-    document.getElementById("nearbyBtn").addEventListener("click", searchNearby);
-    document.getElementById("continuePremium").addEventListener("click", openTelegramPremium);
-    document.getElementById("closePremiumModal").addEventListener("click", () => document.getElementById("premiumModal").classList.remove("show"));
-    document.getElementById("closeDetailsModal").addEventListener("click", () => document.getElementById("detailsModal").classList.remove("show"));
-    document.getElementById("premiumModal").addEventListener("click", e => { if (e.target.id === "premiumModal") document.getElementById("premiumModal").classList.remove("show"); });
-    document.getElementById("detailsModal").addEventListener("click", e => { if (e.target.id === "detailsModal") document.getElementById("detailsModal").classList.remove("show"); });
-    hardDisableZoom();
-    loadPremiumLink();
-    loadQuotaStatus();
-    loadMe();
-    const mode = new URLSearchParams(window.location.search).get("mode") || "";
-    if (mode === "nearby") searchNearby(); else search(initialQuery || "gluten free");
+    function initSearchPage(){
+      if (byId("searchInput")) byId("searchInput").value = initialQuery;
+      onIf("continuePremium", "click", openTelegramPremium);
+      onIf("closePremiumModal", "click", () => { const m = byId("premiumModal"); if (m) m.classList.remove("show"); });
+      onIf("closeDetailsModal", "click", () => { const m = byId("detailsModal"); if (m) m.classList.remove("show"); });
+      onIf("premiumModal", "click", e => { if (e.target.id === "premiumModal") { const m = byId("premiumModal"); if (m) m.classList.remove("show"); } });
+      onIf("detailsModal", "click", e => { if (e.target.id === "detailsModal") { const m = byId("detailsModal"); if (m) m.classList.remove("show"); } });
+      hardDisableZoom();
+      loadPremiumLink();
+      loadQuotaStatus();
+      search(initialQuery || "gluten free");
 
-    if (window.Telegram && window.Telegram.WebApp){
-      Telegram.WebApp.ready();
-      Telegram.WebApp.expand();
-      Telegram.WebApp.setHeaderColor("#f4fbfa");
-      Telegram.WebApp.setBackgroundColor("#f4fbfa");
+      if (tg){
+        tg.ready();
+        tg.expand();
+        tg.setHeaderColor("#f4fbfa");
+        tg.setBackgroundColor("#f4fbfa");
+      }
     }
+
+    if (document.readyState === "loading"){
+      document.addEventListener("DOMContentLoaded", initSearchPage);
+    } else {
+      initSearchPage();
+    }
+
   </script>
 </body>
 </html>

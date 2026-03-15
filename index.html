@@ -336,7 +336,6 @@
     let meState = { user_id: 0, first_name: "", username: "", is_admin: false, is_premium: false, quota: null };
 
     const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
-    const contactLink = "https://t.me/glutenfreeitaliabot";
     let premiumLink = "";
     let userIsPremium = false;
     let lastScrollY = 0;
@@ -377,13 +376,13 @@
     }
 
     function fillProfileSheet(){
-      document.getElementById("profileName").textContent = meState.first_name || meState.username || "Utente Telegram";
-      document.getElementById("profileId").textContent = meState.user_id || "non disponibile";
-      document.getElementById("profilePremium").textContent = meState.is_premium ? "Attivo" : "Non attivo";
+      if (byId("profileName")) byId("profileName").textContent = meState.first_name || meState.username || "Utente Telegram";
+      if (byId("profileId")) byId("profileId").textContent = meState.user_id || "non disponibile";
+      if (byId("profilePremium")) byId("profilePremium").textContent = meState.is_premium ? "Attivo" : "Non attivo";
       const quota = meState.quota || {};
       const remaining = quota.is_premium ? "Illimitate" : `${quota.remaining_today ?? '—'} / ${quota.free_daily_limit ?? '—'}`;
-      document.getElementById("profileQuota").textContent = remaining;
-      document.getElementById("profileAdminBtn").style.display = meState.is_admin ? "inline-flex" : "none";
+      if (byId("profileQuota")) byId("profileQuota").textContent = remaining;
+      if (byId("profileAdminBtn")) byId("profileAdminBtn").style.display = meState.is_admin ? "inline-flex" : "none";
     }
 
     function openTelegramPremium(){
@@ -636,78 +635,33 @@
       return String(str).replaceAll("\\", "\\\\").replaceAll("'", "\\'");
     }
 
-    document.querySelectorAll(".lang-btn").forEach(btn => {
+    qsa(".lang-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         currentLang = btn.dataset.lang;
-        applyTranslations();
-      });
-    });
 
-    document.getElementById("favoritesBtn").addEventListener("click", () => showToast(t("toastFavorites")));
-    document.getElementById("menuBtn").addEventListener("click", () => { fillProfileSheet(); document.getElementById("profileModal").classList.add("show"); });
-    document.getElementById("nearMeCard").addEventListener("click", () => openSearchPage("", "nearby"));
-    document.getElementById("topRatedCard").addEventListener("click", () => {
-      document.getElementById("resultsSection").scrollIntoView({ behavior: "smooth", block: "start" });
-      showToast("Top rated");
-    });
-    document.getElementById("addPlaceCard").addEventListener("click", () => showToast(t("toastAdd")));
-    document.querySelectorAll("[data-open-search]").forEach(el => el.addEventListener("click", () => openSearchPage()));
-    document.getElementById("searchBtn").addEventListener("click", () => openSearchPage(document.getElementById("searchInput").value.trim()));
-    document.getElementById("searchInput").addEventListener("keydown", e => {
-      if (e.key === "Enter") openSearchPage(document.getElementById("searchInput").value.trim());
-    });
-    document.querySelectorAll("[data-query]").forEach(btn => btn.addEventListener("click", () => openSearchPage(btn.dataset.query)));
-    document.getElementById("refreshBtn").addEventListener("click", renderRestaurants);
-    document.getElementById("premiumBtn").addEventListener("click", () => document.getElementById("premiumModal").classList.add("show"));
-    document.getElementById("partnerBtn").addEventListener("click", () => { if (tg && tg.openTelegramLink) tg.openTelegramLink(contactLink); else window.open(contactLink, "_blank"); });
-    document.getElementById("continuePremium").addEventListener("click", openTelegramPremium);
-    document.getElementById("closeModal").addEventListener("click", () => document.getElementById("premiumModal").classList.remove("show"));
-    document.getElementById("premiumModal").addEventListener("click", e => {
-      if (e.target.id === "premiumModal") document.getElementById("premiumModal").classList.remove("show");
-    });
-    document.getElementById("profilePremiumBtn").addEventListener("click", openTelegramPremium);
-    document.getElementById("closeProfileBtn").addEventListener("click", () => document.getElementById("profileModal").classList.remove("show"));
-    document.getElementById("profileModal").addEventListener("click", e => { if (e.target.id === "profileModal") document.getElementById("profileModal").classList.remove("show"); });
-    document.getElementById("profileAdminBtn").addEventListener("click", () => window.location.href = ADMIN_PAGE);
+    function initIndexPage(){
+      applyTranslations();
+      renderRestaurants();
+      hardDisableZoom();
+      setupTopbarHideOnScroll();
+      loadPremiumLink();
+      loadQuotaStatus();
+      loadMe();
 
-    document.querySelectorAll("#categoryToolbar .chip").forEach(btn => {
-      btn.addEventListener("click", () => {
-        document.querySelectorAll("#categoryToolbar .chip").forEach(c => c.classList.remove("active"));
-        btn.classList.add("active");
-        currentCategory = btn.dataset.cat;
-        renderRestaurants();
-      });
-    });
-
-    document.querySelectorAll(".nav-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-        const map = {
-          home: document.querySelector(".hero"),
-          search: document.getElementById("actionsSection"),
-          explore: document.getElementById("exploreSection"),
-          premium: document.getElementById("premiumSection")
-        };
-        const target = map[btn.dataset.nav];
-        if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-    });
-
-    applyTranslations();
-    renderRestaurants();
-    hardDisableZoom();
-    setupTopbarHideOnScroll();
-    loadPremiumLink();
-    loadQuotaStatus();
-    loadMe();
-
-    if (window.Telegram && window.Telegram.WebApp){
-      Telegram.WebApp.ready();
-      Telegram.WebApp.expand();
-      Telegram.WebApp.setHeaderColor("#f4fbfa");
-      Telegram.WebApp.setBackgroundColor("#f4fbfa");
+      if (tg){
+        tg.ready();
+        tg.expand();
+        tg.setHeaderColor("#f4fbfa");
+        tg.setBackgroundColor("#f4fbfa");
+      }
     }
+
+    if (document.readyState === "loading"){
+      document.addEventListener("DOMContentLoaded", initIndexPage);
+    } else {
+      initIndexPage();
+    }
+
   </script>
 </body>
 </html>
