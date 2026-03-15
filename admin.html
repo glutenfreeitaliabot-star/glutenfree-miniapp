@@ -13,7 +13,7 @@
     .app{max-width:920px;margin:0 auto;padding:calc(var(--safe-top) + 14px) 14px calc(var(--safe-bottom) + 24px)}
     .glass{background:rgba(255,255,255,.82);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.7);box-shadow:var(--shadow)}
     .top{border-radius:26px;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px}.title{font-size:30px;font-weight:900;letter-spacing:-.04em}.sub{color:var(--muted);margin-top:4px}.back{border:none;background:#fff;border-radius:999px;width:44px;height:44px;cursor:pointer;box-shadow:0 10px 18px rgba(15,23,42,.06);color:var(--brand-dark);font-size:18px}
-    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}.card{background:#fff;border-radius:24px;padding:18px;border:1px solid #edf3f3;box-shadow:var(--shadow)}.metric{font-size:34px;font-weight:900;letter-spacing:-.04em}.label{margin-top:6px;color:var(--muted);font-weight:700}
+    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:16px}.card{background:#fff;border-radius:24px;padding:18px;border:1px solid #edf3f3;box-shadow:var(--shadow)}.metric{font-size:34px;font-weight:900;letter-spacing:-.04em}.label{margin-top:6px;color:var(--muted);font-weight:700}
     .section{margin-top:18px}.section h2{margin:0 0 12px;font-size:24px;font-weight:900;letter-spacing:-.03em}.table{background:#fff;border-radius:24px;padding:10px;border:1px solid #edf3f3;box-shadow:var(--shadow);overflow:auto}.row{display:grid;grid-template-columns:1.1fr .9fr .9fr .9fr;gap:10px;padding:12px 10px;border-bottom:1px solid #eff3f3;align-items:center}.row:last-child{border-bottom:none}.head{font-size:12px;color:var(--muted);font-weight:900;text-transform:uppercase;letter-spacing:.08em}.pill{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:8px 12px;background:#effaf8;color:var(--brand-dark);font-weight:900}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.btn{border:none;border-radius:16px;padding:13px 16px;background:linear-gradient(135deg,var(--brand-dark),var(--brand));color:#fff;font-weight:900;cursor:pointer}.btn.secondary{background:#eff6ff;color:#1d4ed8}.empty{padding:22px;color:var(--muted)} .small{font-size:13px;color:var(--muted)} .mono{font-family:ui-monospace,monospace;font-size:12px;word-break:break-all}
     @media (max-width:860px){.stats{grid-template-columns:repeat(2,1fr)}.row{grid-template-columns:1fr}}
   </style>
@@ -24,16 +24,16 @@
       <div><div class="title">Admin • Glutenfree bot</div><div class="sub">Pannello controllo riservato all’admin Telegram configurato nel backend.</div></div>
       <button class="back" id="backBtn">←</button>
     </div>
-    <div class="actions"><button class="btn" id="refreshBtn">Aggiorna dashboard</button><button class="btn secondary" id="testPremiumBtn">Attiva Premium per me</button><span class="small" id="adminInfo"></span></div>
+    <div class="actions"><button class="btn" id="refreshBtn">Aggiorna dashboard</button><button class="btn secondary" id="testPremiumBtn">Attiva Premium per me</button><button class="btn secondary" id="removePremiumBtn">Rimuovi Premium per me</button><span class="small" id="adminInfo"></span></div>
     <div class="stats">
       <div class="card"><div class="metric" id="mRestaurants">—</div><div class="label">Ristoranti</div></div>
       <div class="card"><div class="metric" id="mPremium">—</div><div class="label">Premium attivi</div></div>
       <div class="card"><div class="metric" id="mUsers">—</div><div class="label">Utenti con ricerche</div></div>
-      <div class="card"><div class="metric" id="mToday">—</div><div class="label">Ricerche oggi</div></div>
+      <div class="card"><div class="metric" id="mToday">—</div><div class="label">Ricerche oggi</div></div><div class="card"><div class="metric" id="mReviews">—</div><div class="label">Recensioni community</div></div>
     </div>
     <section class="section"><h2>Utenti Premium</h2><div class="table" id="premiumTable"></div></section>
     <section class="section"><h2>Ricerche per giorno</h2><div class="table" id="searchesByDay"></div></section>
-    <section class="section"><h2>Eventi recenti</h2><div class="table" id="eventsTable"></div></section>
+    <section class="section"><h2>Eventi recenti</h2><div class="table" id="eventsTable"></div></section><section class="section"><h2>Recensioni recenti</h2><div class="table" id="reviewsTable"></div></section>
   </div>
 <script>
 
@@ -73,11 +73,13 @@ async function loadDashboard(){
   if (byId('mPremium')) byId('mPremium').textContent = d.premium_active ?? '—';
   if (byId('mUsers')) byId('mUsers').textContent = d.unique_search_users ?? '—';
   if (byId('mToday')) byId('mToday').textContent = d.searches_today ?? '—';
+  if (byId('mReviews')) byId('mReviews').textContent = d.reviews_total ?? '—';
   if (byId('adminInfo')) byId('adminInfo').textContent = `Telegram ID: ${tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 'n.d.'}`;
 
   renderSimpleTable('premiumTable', ['User ID', 'Status', 'Starts', 'Expires'], (d.premium_rows || []).map(r => [r.user_id, r.status, shortDate(r.starts_at), shortDate(r.expires_at)]));
   renderSimpleTable('searchesByDay', ['Giorno', 'Ricerche'], (d.searches_by_day || []).map(r => [r.day, r.searches]));
-  renderSimpleTable('eventsTable', ['User', 'Evento', 'Valore', 'Quando'], (d.recent_events || []).map(r => [r.user_id || 0, r.event_type, `<span class="mono">${escapeHtml(r.event_value || '')}</span>`, shortDate(r.created_at)]));
+  renderSimpleTable('eventsTable', ['User', 'Evento', 'Valore', 'Quando'], (d.recent_events || []).map(r => [r.user_id || 0, escapeHtml(r.event_type), `<span class="mono">${escapeHtml(r.event_value || '')}</span>`, shortDate(r.created_at)]));
+  renderSimpleTable('reviewsTable', ['Ristorante', 'User', 'Voto', 'Quando'], (d.recent_reviews || []).map(r => [escapeHtml(r.restaurant_name || ''), r.user_id || 0, `${r.stars} ★`, shortDate(r.updated_at)]));
 }
 
 function bindEvents(){
@@ -87,6 +89,15 @@ function bindEvents(){
     const res = await fetch(`${API_BASE}/api/admin/test-premium?${queryString()}`, { method: 'POST' });
     if (res.ok){
       alert('Premium attivato per il tuo utente admin.');
+      loadDashboard();
+    } else {
+      alert('Accesso negato.');
+    }
+  });
+  byId('removePremiumBtn')?.addEventListener('click', async () => {
+    const res = await fetch(`${API_BASE}/api/admin/remove-premium?${queryString()}`, { method: 'POST' });
+    if (res.ok){
+      alert('Premium disattivato per il tuo utente admin.');
       loadDashboard();
     } else {
       alert('Accesso negato.');
