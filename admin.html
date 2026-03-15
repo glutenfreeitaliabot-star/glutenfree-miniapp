@@ -88,7 +88,7 @@ async function loadDashboard(){
     renderSimpleTable("searchesByDay", ["Giorno", "Ricerche"], (d.searches_by_day || []).map(r => [r.day, r.searches]));
     renderSimpleTable("eventsTable", ["User", "Evento", "Valore", "Quando"], (d.recent_events || []).map(r => [r.user_id || 0, escapeHtml(r.event_type), `<span class="mono">${escapeHtml(r.event_value || "")}</span>`, shortDate(r.created_at)]));
     renderSimpleTable("reviewsTable", ["Ristorante", "User", "Voto", "Quando"], (d.recent_reviews || []).map(r => [escapeHtml(r.restaurant_name || ""), r.user_id || 0, `${r.stars} ★`, shortDate(r.updated_at)]));
-  }catch(e){
+  } catch(e){
     ["premiumTable","searchesByDay","eventsTable","reviewsTable"].forEach(id => {
       if (byId(id)) byId(id).innerHTML = '<div class="empty">Errore nel caricamento statistiche.</div>';
     });
