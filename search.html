@@ -170,6 +170,7 @@
 
 const API_BASE = "https://glutenfree-bot-184042068933.europe-west1.run.app";
 const API_SEARCH = API_BASE + "/api/restaurants/search";
+const API_RESTAURANTS = API_BASE + "/api/restaurants";
 const API_NEARBY = API_BASE + "/api/restaurants/nearby";
 const API_ME = API_BASE + "/api/me";
 const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
@@ -180,6 +181,7 @@ let meState = { user_id: 0, is_admin: false, is_premium: false, quota: null };
 let currentCategory = "all";
 let sortDesc = true;
 let currentResults = [];
+let allRestaurantsCache = [];
 let pendingReviewRestaurant = null;
 
 const params = new URLSearchParams(window.location.search);
@@ -195,7 +197,7 @@ const fallbackRestaurants = [
 
 function byId(id){ return document.getElementById(id); }
 function qsa(selector){ return Array.from(document.querySelectorAll(selector)); }
-function escapeHtml(str){ return String(str).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;"); }
+function escapeHtml(str){ return String(str ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;"); }
 function formatRating(value){ if (value === null || value === undefined || value === "") return "—"; return Number(value).toFixed(1); }
 function formatCommunity(value, count){ const base = formatRating(value); return base === "—" ? "—" : (count ? `${base} · ${count}` : base); }
 
@@ -227,6 +229,12 @@ function showToast(message){
   showToast._t = setTimeout(() => toast.classList.remove("show"), 1800);
 }
 
+function runtimeContext(){
+  const initData = tg && tg.initData ? tg.initData : "";
+  const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
+  return { initData, userId };
+}
+
 async function loadPremiumLink(){
   try{
     const res = await fetch(`${API_BASE}/api/premium-link`);
@@ -234,20 +242,20 @@ async function loadPremiumLink(){
     premiumLink = data.premium_bot_link || "";
   }catch(e){}
 }
+
 async function loadQuotaStatus(){
   try{
-    const initData = tg && tg.initData ? tg.initData : "";
-    const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
+    const { initData, userId } = runtimeContext();
     const res = await fetch(`${API_BASE}/api/quota?init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`);
     const data = await res.json();
     userIsPremium = !!data.is_premium;
     meState.quota = data;
   }catch(e){}
 }
+
 async function loadMe(){
   try{
-    const initData = tg && tg.initData ? tg.initData : "";
-    const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
+    const { initData, userId } = runtimeContext();
     const res = await fetch(`${API_ME}?init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`);
     const data = await res.json();
     if (data && typeof data === "object"){
@@ -256,6 +264,17 @@ async function loadMe(){
     }
   }catch(e){}
 }
+
+async function preloadAllRestaurants(){
+  try{
+    const res = await fetch(`${API_RESTAURANTS}?limit=200`);
+    const data = await res.json();
+    allRestaurantsCache = enrichItems(Array.isArray(data) ? data : []);
+  }catch(e){
+    allRestaurantsCache = enrichItems([]);
+  }
+}
+
 function openTelegramPremium(){
   if (!premiumLink){
     showToast("Collega il premium link nel backend");
@@ -264,6 +283,7 @@ function openTelegramPremium(){
   if (tg && tg.openTelegramLink) tg.openTelegramLink(premiumLink);
   else window.open(premiumLink, "_blank");
 }
+
 function hardDisableZoom(){
   document.addEventListener("gesturestart", e => e.preventDefault(), { passive: false });
   let lastTouchEnd = 0;
@@ -329,6 +349,15 @@ function applyFilters(list){
   return data;
 }
 
+function localSearch(query){
+  const q = String(query || "").trim().toLowerCase();
+  if (!q) return [...allRestaurantsCache];
+  return allRestaurantsCache.filter(r => {
+    const hay = `${r.name || ""} ${r.city || ""} ${r.address || ""} ${r.types || ""}`.toLowerCase();
+    return hay.includes(q);
+  });
+}
+
 function updateSummary(query, nearbyMode){
   if (byId("resultsTitle")) byId("resultsTitle").textContent = nearbyMode ? "Vicino a te" : "Risultati ricerca";
   if (byId("resultsSub")) byId("resultsSub").textContent = nearbyMode
@@ -336,23 +365,34 @@ function updateSummary(query, nearbyMode){
     : `Trova il locale giusto per te partendo da ${query || "gluten free"}.`;
 }
 
-async function search(query){
+async function runSearch(query){
   const q = (query || "").trim();
   if (byId("results")) byId("results").innerHTML = `<div class="empty">Caricamento risultati…</div>`;
   updateSummary(q, false);
+
   try{
-    const initData = tg && tg.initData ? tg.initData : "";
-    const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
+    const { initData, userId } = runtimeContext();
     const res = await fetch(`${API_SEARCH}?q=${encodeURIComponent(q)}&init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`);
     const data = await res.json();
     if (data.paywall){
       byId("premiumModal")?.classList.add("show");
       return;
     }
-    currentResults = applyFilters(enrichItems(data.items || data.restaurants || []));
+    let items = Array.isArray(data.items) ? data.items : (Array.isArray(data.restaurants) ? data.restaurants : []);
+    if (!items.length){
+      try{
+        const fallbackRes = await fetch(`${API_RESTAURANTS}?q=${encodeURIComponent(q)}&limit=200`);
+        const fallbackData = await fallbackRes.json();
+        items = Array.isArray(fallbackData) ? fallbackData : [];
+      }catch(e){}
+    }
+    if (!items.length){
+      items = localSearch(q);
+    }
+    currentResults = applyFilters(enrichItems(items));
     render(currentResults);
   }catch(e){
-    currentResults = applyFilters(enrichItems([]));
+    currentResults = applyFilters(localSearch(q));
     render(currentResults);
   }
 }
@@ -362,14 +402,13 @@ async function searchNearby(){
   updateSummary("", true);
   if (!navigator.geolocation){
     showToast("Geolocalizzazione non disponibile");
-    currentResults = applyFilters(enrichItems([]));
+    currentResults = applyFilters(localSearch(""));
     render(currentResults);
     return;
   }
   navigator.geolocation.getCurrentPosition(async (pos) => {
     try{
-      const initData = tg && tg.initData ? tg.initData : "";
-      const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
+      const { initData, userId } = runtimeContext();
       const res = await fetch(`${API_NEARBY}?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&radius_km=25&init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`);
       const data = await res.json();
       if (data.paywall){
@@ -379,12 +418,12 @@ async function searchNearby(){
       currentResults = applyFilters(enrichItems(data.items || []));
       render(currentResults);
     }catch(e){
-      currentResults = applyFilters(enrichItems([]));
+      currentResults = applyFilters(localSearch(""));
       render(currentResults);
     }
   }, () => {
     showToast("Permesso posizione negato");
-    currentResults = applyFilters(enrichItems([]));
+    currentResults = applyFilters(localSearch(""));
     render(currentResults);
   }, { enableHighAccuracy: true, timeout: 12000 });
 }
@@ -394,8 +433,7 @@ async function requirePremiumForDetails(restaurant){
     byId("premiumModal")?.classList.add("show");
     return;
   }
-  const initData = tg && tg.initData ? tg.initData : "";
-  const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
+  const { initData, userId } = runtimeContext();
   try{
     const res = await fetch(`${API_BASE}/api/restaurants/${restaurant.id}/details?init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`);
     if (res.status === 403){
@@ -433,21 +471,20 @@ function openReviewModal(restaurant){
   if (byId("reviewTitle")) byId("reviewTitle").textContent = `Recensisci ${restaurant.name}`;
   qsa(".star-btn").forEach(btn => btn.classList.remove("active"));
   if (byId("reviewText")) byId("reviewText").value = "";
-  if (byId("reviewModal")) byId("reviewModal").classList.add("show");
-  byId("reviewStarsValue").value = "";
+  if (byId("reviewStarsValue")) byId("reviewStarsValue").value = "";
+  byId("reviewModal")?.classList.add("show");
 }
 
 async function submitReview(){
   if (!pendingReviewRestaurant) return;
-  const stars = Number(byId("reviewStarsValue").value || 0);
+  const stars = Number(byId("reviewStarsValue")?.value || 0);
   const reviewText = (byId("reviewText")?.value || "").trim();
   if (stars < 1 || stars > 5){
     showToast("Seleziona un voto da 1 a 5");
     return;
   }
   try{
-    const initData = tg && tg.initData ? tg.initData : "";
-    const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
+    const { initData, userId } = runtimeContext();
     const res = await fetch(`${API_BASE}/api/restaurants/${pendingReviewRestaurant.id}/review?init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -468,52 +505,49 @@ async function submitReview(){
   }
 }
 
-async function bookedRestaurant(restaurant){
+async function markBooked(restaurant){
   try{
-    const initData = tg && tg.initData ? tg.initData : "";
-    const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
-    const res = await fetch(`${API_BASE}/api/restaurants/${restaurant.id}/booked?init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`, {
-      method: "POST"
-    });
-    const data = await res.json();
-    if (res.ok){
-      showToast(data.message_sent ? "Ti abbiamo scritto in privato su Telegram" : "Prenotazione registrata");
-    } else {
-      showToast("Errore nella prenotazione");
+    const { initData, userId } = runtimeContext();
+    const res = await fetch(`${API_BASE}/api/restaurants/${restaurant.id}/booked?init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`, { method: "POST" });
+    if (!res.ok){
+      showToast("Errore nel salvataggio");
+      return;
     }
+    showToast("Perfetto, ti scriveremo in privato per chiederti una recensione.");
   }catch(e){
-    showToast("Errore nella prenotazione");
+    showToast("Errore nel salvataggio");
   }
 }
 
 function bindEvents(){
   byId("backBtn")?.addEventListener("click", () => window.location.href = "index.html");
-  byId("searchBtn")?.addEventListener("click", () => search((byId("searchInput")?.value || "")));
-  byId("searchInput")?.addEventListener("keydown", e => { if (e.key === "Enter") search((byId("searchInput")?.value || "")); });
+  byId("searchBtn")?.addEventListener("click", () => runSearch((byId("searchInput")?.value || "")));
+  byId("searchInput")?.addEventListener("keydown", e => { if (e.key === "Enter") runSearch((byId("searchInput")?.value || "")); });
   qsa(".chip").forEach(btn => btn.addEventListener("click", () => {
     qsa(".chip").forEach(c => c.classList.remove("active"));
     btn.classList.add("active");
     currentCategory = btn.dataset.cat || "all";
-    if (btn.id === "nearbyBtn") searchNearby();
-    else render(applyFilters(currentResults.length ? currentResults : enrichItems([])));
+    if (initialMode === "nearby") searchNearby();
+    else runSearch((byId("searchInput")?.value || initialQuery || "gluten free"));
   }));
   byId("sortBtn")?.addEventListener("click", () => {
     sortDesc = !sortDesc;
-    byId("sortBtn").textContent = sortDesc ? "Top rated" : "Lowest rated";
-    render(applyFilters(currentResults.length ? currentResults : enrichItems([])));
+    if (byId("sortBtn")) byId("sortBtn").textContent = sortDesc ? "Top rated" : "Lowest rated";
+    if (initialMode === "nearby") searchNearby();
+    else runSearch((byId("searchInput")?.value || initialQuery || "gluten free"));
   });
   byId("continuePremium")?.addEventListener("click", openTelegramPremium);
   byId("closePremiumModal")?.addEventListener("click", () => byId("premiumModal")?.classList.remove("show"));
   byId("closeDetailsModal")?.addEventListener("click", () => byId("detailsModal")?.classList.remove("show"));
+  byId("closeReviewModal")?.addEventListener("click", () => byId("reviewModal")?.classList.remove("show"));
+  byId("submitReviewBtn")?.addEventListener("click", submitReview);
   byId("premiumModal")?.addEventListener("click", e => { if (e.target.id === "premiumModal") byId("premiumModal")?.classList.remove("show"); });
   byId("detailsModal")?.addEventListener("click", e => { if (e.target.id === "detailsModal") byId("detailsModal")?.classList.remove("show"); });
-  byId("closeReviewModal")?.addEventListener("click", () => byId("reviewModal")?.classList.remove("show"));
   byId("reviewModal")?.addEventListener("click", e => { if (e.target.id === "reviewModal") byId("reviewModal")?.classList.remove("show"); });
-  byId("submitReviewBtn")?.addEventListener("click", submitReview);
   qsa(".star-btn").forEach(btn => btn.addEventListener("click", () => {
     qsa(".star-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
-    byId("reviewStarsValue").value = btn.dataset.stars || "";
+    if (byId("reviewStarsValue")) byId("reviewStarsValue").value = btn.dataset.value || "";
   }));
   byId("results")?.addEventListener("click", e => {
     const btn = e.target.closest("button");
@@ -522,20 +556,18 @@ function bindEvents(){
     if (!payload) return;
     const restaurant = JSON.parse(decodeURIComponent(payload));
     if (btn.classList.contains("detail-btn")) requirePremiumForDetails(restaurant);
+    if (btn.classList.contains("booked-btn")) markBooked(restaurant);
     if (btn.classList.contains("review-btn")) openReviewModal(restaurant);
-    if (btn.classList.contains("booked-btn")) bookedRestaurant(restaurant);
   });
 }
 
-function initSearchPage(){
+async function initSearchPage(){
   if (byId("searchInput")) byId("searchInput").value = initialQuery;
   bindEvents();
   hardDisableZoom();
-  loadPremiumLink();
-  loadQuotaStatus();
-  loadMe();
+  await Promise.all([loadPremiumLink(), loadQuotaStatus(), loadMe(), preloadAllRestaurants()]);
   if (initialMode === "nearby") searchNearby();
-  else search(initialQuery || "gluten free");
+  else runSearch(initialQuery || "gluten free");
 
   if (tg){
     tg.ready();

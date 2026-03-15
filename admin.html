@@ -40,14 +40,14 @@
 const API_BASE = "https://glutenfree-bot-184042068933.europe-west1.run.app";
 const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
 
-function queryString(){
+function qs(){
   const initData = tg && tg.initData ? tg.initData : "";
   const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
   return `init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`;
 }
 function byId(id){ return document.getElementById(id); }
-function escapeHtml(str){ return String(str).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
-function shortDate(v){ if(!v) return '-'; try{ return new Date(v).toLocaleString('it-IT'); }catch(e){ return v; } }
+function escapeHtml(str){ return String(str ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
+function shortDate(v){ if(!v) return "-"; try{ return new Date(v).toLocaleString("it-IT"); }catch(e){ return v; } }
 
 function renderSimpleTable(elId, headers, rows){
   const el = byId(elId);
@@ -61,47 +61,52 @@ function renderSimpleTable(elId, headers, rows){
   el.innerHTML = head + body;
 }
 
-async function loadDashboard(){
-  const res = await fetch(`${API_BASE}/api/admin/dashboard?${queryString()}`);
-  if (res.status === 403){
-    document.body.innerHTML = '<div class="app"><div class="card"><h2>Accesso negato</h2><p>Questo pannello è accessibile solo all’admin configurato con ADMIN_TELEGRAM_ID.</p></div></div>';
-    return;
-  }
-  const data = await res.json();
-  const d = data.dashboard || {};
-  if (byId('mRestaurants')) byId('mRestaurants').textContent = d.restaurants_total ?? '—';
-  if (byId('mPremium')) byId('mPremium').textContent = d.premium_active ?? '—';
-  if (byId('mUsers')) byId('mUsers').textContent = d.unique_search_users ?? '—';
-  if (byId('mToday')) byId('mToday').textContent = d.searches_today ?? '—';
-  if (byId('mReviews')) byId('mReviews').textContent = d.reviews_total ?? '—';
-  if (byId('adminInfo')) byId('adminInfo').textContent = `Telegram ID: ${tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 'n.d.'}`;
+function setLoading(){
+  ["premiumTable","searchesByDay","eventsTable","reviewsTable"].forEach(id => {
+    if (byId(id)) byId(id).innerHTML = '<div class="empty">Caricamento…</div>';
+  });
+}
 
-  renderSimpleTable('premiumTable', ['User ID', 'Status', 'Starts', 'Expires'], (d.premium_rows || []).map(r => [r.user_id, r.status, shortDate(r.starts_at), shortDate(r.expires_at)]));
-  renderSimpleTable('searchesByDay', ['Giorno', 'Ricerche'], (d.searches_by_day || []).map(r => [r.day, r.searches]));
-  renderSimpleTable('eventsTable', ['User', 'Evento', 'Valore', 'Quando'], (d.recent_events || []).map(r => [r.user_id || 0, escapeHtml(r.event_type), `<span class="mono">${escapeHtml(r.event_value || '')}</span>`, shortDate(r.created_at)]));
-  renderSimpleTable('reviewsTable', ['Ristorante', 'User', 'Voto', 'Quando'], (d.recent_reviews || []).map(r => [escapeHtml(r.restaurant_name || ''), r.user_id || 0, `${r.stars} ★`, shortDate(r.updated_at)]));
+async function loadDashboard(){
+  setLoading();
+  try{
+    const res = await fetch(`${API_BASE}/api/admin/dashboard?${qs()}`);
+    if (res.status === 403){
+      document.body.innerHTML = '<div class="app"><div class="card"><h2>Accesso negato</h2><p>Questo pannello è accessibile solo all’admin configurato con ADMIN_TELEGRAM_ID.</p></div></div>';
+      return;
+    }
+    const data = await res.json();
+    const d = data.dashboard || {};
+    if (byId("mRestaurants")) byId("mRestaurants").textContent = d.restaurants_total ?? "—";
+    if (byId("mPremium")) byId("mPremium").textContent = d.premium_active ?? "—";
+    if (byId("mUsers")) byId("mUsers").textContent = d.unique_search_users ?? "—";
+    if (byId("mToday")) byId("mToday").textContent = d.searches_today ?? "—";
+    if (byId("mReviews")) byId("mReviews").textContent = d.reviews_total ?? "—";
+    if (byId("adminInfo")) byId("adminInfo").textContent = `Telegram ID: ${tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "n.d."}`;
+
+    renderSimpleTable("premiumTable", ["User ID", "Status", "Starts", "Expires"], (d.premium_rows || []).map(r => [r.user_id, escapeHtml(r.status), shortDate(r.starts_at), shortDate(r.expires_at)]));
+    renderSimpleTable("searchesByDay", ["Giorno", "Ricerche"], (d.searches_by_day || []).map(r => [r.day, r.searches]));
+    renderSimpleTable("eventsTable", ["User", "Evento", "Valore", "Quando"], (d.recent_events || []).map(r => [r.user_id || 0, escapeHtml(r.event_type), `<span class="mono">${escapeHtml(r.event_value || "")}</span>`, shortDate(r.created_at)]));
+    renderSimpleTable("reviewsTable", ["Ristorante", "User", "Voto", "Quando"], (d.recent_reviews || []).map(r => [escapeHtml(r.restaurant_name || ""), r.user_id || 0, `${r.stars} ★`, shortDate(r.updated_at)]));
+  }catch(e){
+    ["premiumTable","searchesByDay","eventsTable","reviewsTable"].forEach(id => {
+      if (byId(id)) byId(id).innerHTML = '<div class="empty">Errore nel caricamento statistiche.</div>';
+    });
+  }
 }
 
 function bindEvents(){
-  byId('backBtn')?.addEventListener('click', () => window.location.href = 'index.html');
-  byId('refreshBtn')?.addEventListener('click', loadDashboard);
-  byId('testPremiumBtn')?.addEventListener('click', async () => {
-    const res = await fetch(`${API_BASE}/api/admin/test-premium?${queryString()}`, { method: 'POST' });
-    if (res.ok){
-      alert('Premium attivato per il tuo utente admin.');
-      loadDashboard();
-    } else {
-      alert('Accesso negato.');
-    }
+  byId("backBtn")?.addEventListener("click", () => window.location.href = "index.html");
+  byId("refreshBtn")?.addEventListener("click", loadDashboard);
+  byId("testPremiumBtn")?.addEventListener("click", async () => {
+    const res = await fetch(`${API_BASE}/api/admin/test-premium?${qs()}`, { method: "POST" });
+    if (res.ok){ alert("Premium attivato per il tuo utente admin."); loadDashboard(); }
+    else { alert("Accesso negato."); }
   });
-  byId('removePremiumBtn')?.addEventListener('click', async () => {
-    const res = await fetch(`${API_BASE}/api/admin/remove-premium?${queryString()}`, { method: 'POST' });
-    if (res.ok){
-      alert('Premium disattivato per il tuo utente admin.');
-      loadDashboard();
-    } else {
-      alert('Accesso negato.');
-    }
+  byId("removePremiumBtn")?.addEventListener("click", async () => {
+    const res = await fetch(`${API_BASE}/api/admin/remove-premium?${qs()}`, { method: "POST" });
+    if (res.ok){ alert("Premium disattivato per il tuo utente admin."); loadDashboard(); }
+    else { alert("Accesso negato."); }
   });
 }
 
@@ -110,13 +115,13 @@ function initAdmin(){
   if (tg){
     tg.ready();
     tg.expand();
-    tg.setHeaderColor('#f4fbfa');
-    tg.setBackgroundColor('#f4fbfa');
+    tg.setHeaderColor("#f4fbfa");
+    tg.setBackgroundColor("#f4fbfa");
   }
   loadDashboard();
 }
 
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initAdmin);
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initAdmin);
 else initAdmin();
 
 </script>
