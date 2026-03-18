@@ -330,7 +330,7 @@
 
   <script>
 
-const API_BASE = "https://glutenfree-bot-184042068933.europe-west1.run.app";
+const API_BASE = new URLSearchParams(window.location.search).get("api_base") || window.__API_BASE__ || "https://glutenfree-bot-184042068933.europe-west1.run.app";
 const SEARCH_PAGE = "search.html";
 const ADMIN_PAGE = "admin.html";
 const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;

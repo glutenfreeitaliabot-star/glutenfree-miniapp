@@ -168,7 +168,7 @@
 
   <script>
 
-const API_BASE = "https://glutenfree-bot-184042068933.europe-west1.run.app";
+const API_BASE = new URLSearchParams(window.location.search).get("api_base") || window.__API_BASE__ || "https://glutenfree-bot-184042068933.europe-west1.run.app";
 const API_SEARCH = API_BASE + "/api/restaurants/search";
 const API_RESTAURANTS = API_BASE + "/api/restaurants";
 const API_NEARBY = API_BASE + "/api/restaurants/nearby";
@@ -452,6 +452,10 @@ async function requirePremiumForDetails(restaurant){
   const { initData, userId } = runtimeContext();
   try {
     const res = await fetch(`${API_BASE}/api/restaurants/${restaurant.id}/details?init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`);
+    if (res.status === 401) {
+      showToast("Apri questa pagina dalla Mini App Telegram");
+      return;
+    }
     if (res.status === 403) {
       byId("premiumModal")?.classList.add("show");
       return;
@@ -507,6 +511,10 @@ async function submitReview(){
       body: JSON.stringify({ stars, review_text: reviewText })
     });
     const data = await res.json();
+    if (res.status === 401) {
+      showToast("Apri questa pagina dalla Mini App Telegram");
+      return;
+    }
     if (!res.ok) {
       showToast("Errore nel salvataggio recensione");
       return;
@@ -525,6 +533,10 @@ async function markBooked(restaurant){
   try {
     const { initData, userId } = runtimeContext();
     const res = await fetch(`${API_BASE}/api/restaurants/${restaurant.id}/booked?init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`, { method: "POST" });
+    if (res.status === 401) {
+      showToast("Apri questa pagina dalla Mini App Telegram");
+      return;
+    }
     if (!res.ok) {
       showToast("Errore nel salvataggio");
       return;

@@ -37,13 +37,12 @@
   </div>
 <script>
 
-const API_BASE = "https://glutenfree-bot-184042068933.europe-west1.run.app";
+const API_BASE = new URLSearchParams(window.location.search).get("api_base") || window.__API_BASE__ || "https://glutenfree-bot-184042068933.europe-west1.run.app";
 const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
 
 function qs(){
   const initData = tg && tg.initData ? tg.initData : "";
-  const userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "";
-  return `init_data=${encodeURIComponent(initData)}&user_id=${encodeURIComponent(userId)}`;
+  return `init_data=${encodeURIComponent(initData)}`;
 }
 function byId(id){ return document.getElementById(id); }
 function escapeHtml(str){ return String(str ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
@@ -71,6 +70,10 @@ async function loadDashboard(){
   setLoading();
   try{
     const res = await fetch(`${API_BASE}/api/admin/dashboard?${qs()}`);
+    if (res.status === 401){
+      document.body.innerHTML = '<div class="app"><div class="card"><h2>Autenticazione richiesta</h2><p>Apri questo pannello dalla Mini App Telegram, non da un browser esterno.</p></div></div>';
+      return;
+    }
     if (res.status === 403){
       document.body.innerHTML = '<div class="app"><div class="card"><h2>Accesso negato</h2><p>Questo pannello è accessibile solo all’admin configurato con ADMIN_TELEGRAM_ID.</p></div></div>';
       return;
@@ -101,11 +104,13 @@ function bindEvents(){
   byId("testPremiumBtn")?.addEventListener("click", async () => {
     const res = await fetch(`${API_BASE}/api/admin/test-premium?${qs()}`, { method: "POST" });
     if (res.ok){ alert("Premium attivato per il tuo utente admin."); loadDashboard(); }
+    else if (res.status === 401) { alert("Apri questo pannello dalla Mini App Telegram."); }
     else { alert("Accesso negato."); }
   });
   byId("removePremiumBtn")?.addEventListener("click", async () => {
     const res = await fetch(`${API_BASE}/api/admin/remove-premium?${qs()}`, { method: "POST" });
     if (res.ok){ alert("Premium disattivato per il tuo utente admin."); loadDashboard(); }
+    else if (res.status === 401) { alert("Apri questo pannello dalla Mini App Telegram."); }
     else { alert("Accesso negato."); }
   });
 }
